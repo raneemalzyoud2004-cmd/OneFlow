@@ -1,3 +1,15 @@
+<?php
+session_start();
+
+header("Cache-Control: no-cache, no-store, must-revalidate");
+header("Pragma: no-cache");
+header("Expires: 0");
+
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'admin') {
+    header("Location: login.php");
+    exit();
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -69,8 +81,7 @@
             </div>
           </div>
 
-          <button class="logout-btn">Logout</button>
-        </div>
+<a href="logout.php" class="logout-btn">Logout</a>   </div>
       </header>
 
       <!-- Hero Banner -->

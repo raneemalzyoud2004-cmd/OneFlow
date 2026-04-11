@@ -1,3 +1,15 @@
+<?php
+session_start();
+
+header("Cache-Control: no-cache, no-store, must-revalidate");
+header("Pragma: no-cache");
+header("Expires: 0");
+
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'employee') {
+    header("Location: login.php");
+    exit();
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -62,7 +74,9 @@
           <span>Team Member</span>
         </div>
 
-        <button class="logout-btn">Logout</button>
+<a href="logout.php">
+  <button class="logout-btn">Logout</button>
+</a>
       </div>
     </header>
 
