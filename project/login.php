@@ -1,13 +1,63 @@
 <?php
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $email = $_POST['email'];
-    $password = $_POST['password'];
+session_start();
+include("config.php");
 
-    if ($email == "admin@test.com" && $password == "1234") {
-        header("Location: dashboard.php");
+$error = "";
+
+if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
+    if ($_SESSION['role'] === 'admin') {
+        header("Location: dashboardadmin.php");
         exit();
+    } elseif ($_SESSION['role'] === 'hr') {
+        header("Location: hrdashboard.php");
+        exit();
+    } elseif ($_SESSION['role'] === 'employee') {
+        header("Location: dashboardemployee.php");
+        exit();
+    }
+}
+
+if ($_SERVER["REQUEST_METHOD"] == "POST") {
+    $username = trim($_POST['username']);
+    $password = trim($_POST['password']);
+
+    if (!empty($username) && !empty($password)) {
+        $sql = "SELECT * FROM users WHERE username = ? AND password = ?";
+        $stmt = mysqli_prepare($conn, $sql);
+
+        if ($stmt) {
+            mysqli_stmt_bind_param($stmt, "ss", $username, $password);
+            mysqli_stmt_execute($stmt);
+            $result = mysqli_stmt_get_result($stmt);
+
+            if ($row = mysqli_fetch_assoc($result)) {
+                $_SESSION['user_id'] = $row['id'];
+                $_SESSION['full_name'] = $row['full_name'];
+                $_SESSION['username'] = $row['username'];
+                $_SESSION['role'] = $row['role'];
+
+                if ($row['role'] === 'admin') {
+                    header("Location: dashboardadmin.php");
+                    exit();
+                } elseif ($row['role'] === 'hr') {
+                    header("Location: hrdashboard.php");
+                    exit();
+                } elseif ($row['role'] === 'employee') {
+                    header("Location: dashboardemployee.php");
+                    exit();
+                } else {
+                    $error = "Invalid user role.";
+                }
+            } else {
+                $error = "Invalid username or password.";
+            }
+
+            mysqli_stmt_close($stmt);
+        } else {
+            $error = "Database query error.";
+        }
     } else {
-        $error = "Invalid email or password";
+        $error = "Please enter your username and password.";
     }
 }
 ?>
@@ -37,14 +87,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <div class="form-box">
       <h2>Log in</h2>
 
-      <?php if (isset($error)) { ?>
+      <?php if (!empty($error)) { ?>
         <p style="color:red; margin-bottom:15px; text-align:center;"><?php echo $error; ?></p>
       <?php } ?>
 
-      <form method="POST">
+      <form method="POST" action="">
         <div class="input-box">
           <i class="fa-solid fa-user"></i>
-          <input type="email" name="email" placeholder="Email" required>
+          <input type="text" name="username" placeholder="Username" required>
         </div>
 
         <div class="input-box">
@@ -53,12 +103,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         </div>
 
         <button type="submit" class="login-btn">Log in</button>
-        
-<a href="index.php" class="back-home">← Return to Home</a>
+
+        <a href="index.php" class="back-home">← Return to Home</a>
       </form>
 
       <div class="logo">
-      <img src="images/oneflow.png" alt="OneFlow Logo">
+        <img src="images/oneflow.png" alt="OneFlow Logo">
       </div>
     </div>
   </div>
