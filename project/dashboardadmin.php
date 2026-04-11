@@ -9,6 +9,8 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'admin') {
     header("Location: login.php");
     exit();
 }
+
+$full_name = $_SESSION['full_name'];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -74,9 +76,8 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'admin') {
           </div>
 
           <div class="admin-profile">
-            <div class="admin-avatar">A</div>
-            <div>
-              <h4>Admin</h4>
+<div class="admin-avatar"><?php echo strtoupper(substr($full_name, 0, 1)); ?></div>            <div>
+<h4><?php echo htmlspecialchars($full_name); ?></h4>
               <span>Super Admin</span>
             </div>
           </div>
@@ -87,7 +88,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'admin') {
       <!-- Hero Banner -->
       <section class="hero-banner">
         <div class="hero-text">
-          <h2>Welcome back, Admin 👋</h2>
+<h2>Welcome back, <?php echo htmlspecialchars($full_name); ?> 👋</h2>
           <p>You have <strong>15 pending requests</strong>, <strong>3 new alerts</strong>, and <strong>12 new user activities</strong> today.</p>
         </div>
         <div class="hero-actions">
