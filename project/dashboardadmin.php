@@ -1,3 +1,17 @@
+<?php
+session_start();
+
+header("Cache-Control: no-cache, no-store, must-revalidate");
+header("Pragma: no-cache");
+header("Expires: 0");
+
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'admin') {
+    header("Location: login.php");
+    exit();
+}
+
+$full_name = $_SESSION['full_name'];
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -22,13 +36,13 @@
       </div>
 
       <ul class="sidebar-menu">
-        <li class="active"><a href="dashboardadmin.php"><i class="fas fa-house"></i> Dashboard</a></li>
-        <li><a href="manageusers.php"><i class="fas fa-users"></i> Manage Users</a></li>
-        <li><a href="hrteam.php"><i class="fas fa-user-tie"></i> HR Team</a></li>
-        <li><a href="requestsadmin.php"><i class="fas fa-file-circle-check"></i> Requests</a></li>
-        <li><a href="analytics.php"><i class="fas fa-chart-line"></i> Analytics</a></li>
-        <li><a href="notifications.php"><i class="fas fa-bell"></i> Notifications</a></li>
-        <li><a href="settingsadmin.php"><i class="fas fa-gear"></i> Settings</a></li>
+        <li class="active"><a href="#"><i class="fas fa-house"></i> Dashboard</a></li>
+       <li><a href="manageusers.php"><i class="fas fa-users"></i> Manage Users</a></li>
+        <li><a href="#"><i class="fas fa-user-tie"></i> HR Team</a></li>
+<li><a href="requestsadmin.php"><i class="fas fa-file-circle-check"></i> Requests</a></li>
+       <li><a href="analytics.php"><i class="fas fa-chart-line"></i> Analytics</a></li>
+       <li><a href="notifications.php">Notifications</a></li>
+        <li><a href="#"><i class="fas fa-gear"></i> Settings</a></li>
       </ul>
 
       <div class="sidebar-bottom">
@@ -56,32 +70,30 @@
             <input type="text" placeholder="Search employees, requests, reports...">
           </div>
 
-          <a href="notifications.php" class="icon-btn notification-bell">
+          <div class="icon-btn notification-bell">
             <i class="fas fa-bell"></i>
             <span class="notif-count">3</span>
-          </a>
+          </div>
 
           <div class="admin-profile">
-            <div class="admin-avatar">A</div>
-            <div>
-              <h4>Admin</h4>
+<div class="admin-avatar"><?php echo strtoupper(substr($full_name, 0, 1)); ?></div>            <div>
+<h4><?php echo htmlspecialchars($full_name); ?></h4>
               <span>Super Admin</span>
             </div>
           </div>
 
-          <a href="login.php" class="logout-btn">Logout</a>
-        </div>
+<a href="logout.php" class="logout-btn">Logout</a>   </div>
       </header>
 
       <!-- Hero Banner -->
       <section class="hero-banner">
         <div class="hero-text">
-          <h2>Welcome back, Admin 👋</h2>
+<h2>Welcome back, <?php echo htmlspecialchars($full_name); ?> 👋</h2>
           <p>You have <strong>15 pending requests</strong>, <strong>3 new alerts</strong>, and <strong>12 new user activities</strong> today.</p>
         </div>
         <div class="hero-actions">
-          <a href="manageusers.php" class="hero-btn primary-btn"><i class="fas fa-user-plus"></i> Add New User</a>
-          <a href="analytics.php" class="hero-btn secondary-btn"><i class="fas fa-file-export"></i> Export Report</a>
+          <button class="hero-btn primary-btn"><i class="fas fa-user-plus"></i> Add New User</button>
+          <button class="hero-btn secondary-btn"><i class="fas fa-file-export"></i> Export Report</button>
         </div>
       </section>
 
@@ -137,29 +149,29 @@
             </div>
 
             <div class="quick-actions">
-              <a href="manageusers.php" class="quick-card">
+              <div class="quick-card">
                 <i class="fas fa-user-plus"></i>
                 <h4>Add Employee</h4>
                 <p>Create a new employee account</p>
-              </a>
+              </div>
 
-              <a href="settingsadmin.php" class="quick-card">
+              <div class="quick-card">
                 <i class="fas fa-user-shield"></i>
                 <h4>Manage Roles</h4>
                 <p>Control admin and HR access</p>
-              </a>
+              </div>
 
-              <a href="requestsadmin.php" class="quick-card">
+              <div class="quick-card">
                 <i class="fas fa-file-signature"></i>
                 <h4>Review Requests</h4>
                 <p>Approve or reject submissions</p>
-              </a>
+              </div>
 
-              <a href="analytics.php" class="quick-card">
+              <div class="quick-card">
                 <i class="fas fa-chart-column"></i>
                 <h4>Generate Report</h4>
                 <p>View and export system insights</p>
-              </a>
+              </div>
             </div>
           </div>
 
@@ -167,7 +179,7 @@
           <div class="panel">
             <div class="panel-header">
               <h2>Recent Requests</h2>
-              <a href="requestsadmin.php">View All</a>
+              <a href="#">View All</a>
             </div>
 
             <div class="table-wrapper">

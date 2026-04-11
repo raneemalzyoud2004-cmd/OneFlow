@@ -1,2 +1,0 @@
-# OneFlow
-OneFlow Web Application
