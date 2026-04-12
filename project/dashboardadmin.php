@@ -1,5 +1,6 @@
 <?php
 session_start();
+include("config.php");
 
 header("Cache-Control: no-cache, no-store, must-revalidate");
 header("Pragma: no-cache");
@@ -11,8 +12,16 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'admin') {
 }
 
 $full_name = $_SESSION['full_name'];
-?>
 
+// Total Employees Count
+$employeesCount = 0;
+$query = "SELECT COUNT(*) AS total FROM users";
+$result = mysqli_query($conn, $query);
+
+if ($result && $row = mysqli_fetch_assoc($result)) {
+    $employeesCount = $row['total'];
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -105,9 +114,9 @@ $full_name = $_SESSION['full_name'];
         <div class="card">
           <div class="card-icon"><i class="fas fa-users"></i></div>
           <div class="card-info">
-            <h3>120</h3>
+            <h3><?php echo $employeesCount; ?></h3>
             <p>Total Employees</p>
-            <span>+8 this month</span>
+            <span>Live count from database</span>
           </div>
         </div>
 
@@ -203,8 +212,8 @@ $full_name = $_SESSION['full_name'];
                     <td>+962791234567</td>
                     <td><span class="status pending">Pending</span></td>
                     <td>
-                      <button class="action-btn approve">Approve</button>
-                      <button class="action-btn reject">Reject</button>
+                      <button type="button" class="action-btn approve">Approve</button>
+                      <button type="button" class="action-btn reject">Reject</button>
                     </td>
                   </tr>
 
@@ -214,7 +223,7 @@ $full_name = $_SESSION['full_name'];
                     <td>+962781112233</td>
                     <td><span class="status approved">Approved</span></td>
                     <td>
-                      <button class="action-btn view">View</button>
+                      <button type="button" class="action-btn view">View</button>
                     </td>
                   </tr>
 
@@ -224,7 +233,7 @@ $full_name = $_SESSION['full_name'];
                     <td>+962799998877</td>
                     <td><span class="status rejected">Rejected</span></td>
                     <td>
-                      <button class="action-btn view">View</button>
+                      <button type="button" class="action-btn view">View</button>
                     </td>
                   </tr>
                 </tbody>
@@ -346,6 +355,51 @@ $full_name = $_SESSION['full_name'];
 
     </main>
   </div>
+
+  <!-- Popup Message -->
+  <div id="actionPopup" class="action-popup"></div>
+
+  <script>
+    function showPopup(message, type) {
+      const popup = document.getElementById("actionPopup");
+      popup.textContent = message;
+      popup.className = "action-popup show " + type;
+
+      setTimeout(() => {
+        popup.className = "action-popup";
+      }, 2500);
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      const approveButtons = document.querySelectorAll(".action-btn.approve");
+      const rejectButtons = document.querySelectorAll(".action-btn.reject");
+      const viewButtons = document.querySelectorAll(".action-btn.view");
+
+      approveButtons.forEach(button => {
+        button.addEventListener("click", function () {
+          const row = this.closest("tr");
+          const name = row.querySelector("td").textContent;
+          showPopup(name + " has been approved successfully.", "success");
+        });
+      });
+
+      rejectButtons.forEach(button => {
+        button.addEventListener("click", function () {
+          const row = this.closest("tr");
+          const name = row.querySelector("td").textContent;
+          showPopup(name + " has been rejected.", "error");
+        });
+      });
+
+      viewButtons.forEach(button => {
+        button.addEventListener("click", function () {
+          const row = this.closest("tr");
+          const name = row.querySelector("td").textContent;
+          showPopup("Viewing details for " + name + ".", "info");
+        });
+      });
+    });
+  </script>
 
 </body>
 </html>
