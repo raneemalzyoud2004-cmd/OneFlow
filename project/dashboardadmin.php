@@ -164,7 +164,7 @@ $usersResult = mysqli_query($conn, $usersQuery);
           <div class="card-icon"><i class="fas fa-chart-pie"></i></div>
           <div class="card-info">
             <h3><?php echo $employeesCount; ?></h3>
-            <p>pending requests </p>
+            <p>Pending Requests</p>
             <span>Users stored in database</span>
           </div>
         </div>
@@ -238,14 +238,15 @@ $usersResult = mysqli_query($conn, $usersQuery);
                           </span>
                         </td>
                         <td>
-                          <button type="button" class="action-btn view">View</button>
+                          <?php if ($user['role'] == 'employee') { ?>
+                            <button type="button" class="action-btn approve">Approve</button>
+                            <button type="button" class="action-btn reject">Reject</button>
+                          <?php } else { ?>
+                            <button type="button" class="action-btn view">View</button>
+                          <?php } ?>
                         </td>
                       </tr>
                     <?php } ?>
-                  <?php } else { ?>
-                    <tr>
-                      <td colspan="4">No users found.</td>
-                    </tr>
                   <?php } ?>
                 </tbody>
               </table>
@@ -376,15 +377,33 @@ $usersResult = mysqli_query($conn, $usersQuery);
       popup.textContent = message;
       popup.className = "action-popup show " + type;
 
-      setTimeout(() => {
+      setTimeout(function () {
         popup.className = "action-popup";
       }, 2500);
     }
 
     document.addEventListener("DOMContentLoaded", function () {
+      const approveButtons = document.querySelectorAll(".action-btn.approve");
+      const rejectButtons = document.querySelectorAll(".action-btn.reject");
       const viewButtons = document.querySelectorAll(".action-btn.view");
       const searchInput = document.getElementById("userSearch");
       const tableRows = document.querySelectorAll("#usersTable tbody tr");
+
+      approveButtons.forEach(function(button) {
+        button.addEventListener("click", function () {
+          const row = this.closest("tr");
+          const name = row.querySelector("td").textContent;
+          showPopup(name + " approved successfully.", "success");
+        });
+      });
+
+      rejectButtons.forEach(function(button) {
+        button.addEventListener("click", function () {
+          const row = this.closest("tr");
+          const name = row.querySelector("td").textContent;
+          showPopup(name + " is rejected.", "error");
+        });
+      });
 
       viewButtons.forEach(function(button) {
         button.addEventListener("click", function () {
