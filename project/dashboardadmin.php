@@ -21,6 +21,28 @@ $result = mysqli_query($conn, $query);
 if ($result && $row = mysqli_fetch_assoc($result)) {
     $employeesCount = $row['total'];
 }
+
+// Count HR users
+$hrCount = 0;
+$hrQuery = "SELECT COUNT(*) AS total FROM users WHERE role = 'hr'";
+$hrResult = mysqli_query($conn, $hrQuery);
+
+if ($hrResult && $hrRow = mysqli_fetch_assoc($hrResult)) {
+    $hrCount = $hrRow['total'];
+}
+
+// Count Admin users
+$adminCount = 0;
+$adminQuery = "SELECT COUNT(*) AS total FROM users WHERE role = 'admin'";
+$adminResult = mysqli_query($conn, $adminQuery);
+
+if ($adminResult && $adminRow = mysqli_fetch_assoc($adminResult)) {
+    $adminCount = $adminRow['total'];
+}
+
+// Get users list
+$usersQuery = "SELECT id, full_name, username, role FROM users ORDER BY id DESC";
+$usersResult = mysqli_query($conn, $usersQuery);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -71,13 +93,13 @@ if ($result && $row = mysqli_fetch_assoc($result)) {
       <header class="topbar">
         <div class="topbar-left">
           <h1>Admin Dashboard</h1>
-          <p>Monitor employees, requests, and system activity in one place.</p>
+          <p>Monitor employees, users, and system activity in one place.</p>
         </div>
 
         <div class="topbar-right">
           <div class="search-box">
             <i class="fas fa-search"></i>
-            <input type="text" placeholder="Search employees, requests, reports...">
+            <input type="text" id="userSearch" placeholder="Search users by name, username, or role...">
           </div>
 
           <a href="notifications.php" class="icon-btn notification-bell">
@@ -101,7 +123,7 @@ if ($result && $row = mysqli_fetch_assoc($result)) {
       <section class="hero-banner">
         <div class="hero-text">
           <h2>Welcome back, <?php echo $full_name; ?> 👋</h2>
-          <p>You have <strong>15 pending requests</strong>, <strong>3 new alerts</strong>, and <strong>12 new user activities</strong> today.</p>
+          <p>You currently have <strong><?php echo $employeesCount; ?> total users</strong> registered in the system.</p>
         </div>
         <div class="hero-actions">
           <a href="manageusers.php" class="hero-btn primary-btn"><i class="fas fa-user-plus"></i> Add New User</a>
@@ -115,35 +137,35 @@ if ($result && $row = mysqli_fetch_assoc($result)) {
           <div class="card-icon"><i class="fas fa-users"></i></div>
           <div class="card-info">
             <h3><?php echo $employeesCount; ?></h3>
-            <p>Total Employees</p>
+            <p>Total Users</p>
             <span>Live count from database</span>
           </div>
         </div>
 
         <div class="card">
-          <div class="card-icon"><i class="fas fa-hourglass-half"></i></div>
+          <div class="card-icon"><i class="fas fa-user-shield"></i></div>
           <div class="card-info">
-            <h3>15</h3>
-            <p>Pending Requests</p>
-            <span>Needs review today</span>
+            <h3><?php echo $adminCount; ?></h3>
+            <p>Admins</p>
+            <span>System administrators</span>
           </div>
         </div>
 
         <div class="card">
-          <div class="card-icon"><i class="fas fa-circle-check"></i></div>
+          <div class="card-icon"><i class="fas fa-user-tie"></i></div>
           <div class="card-info">
-            <h3>87</h3>
-            <p>Approved Requests</p>
-            <span>Processed successfully</span>
+            <h3><?php echo $hrCount; ?></h3>
+            <p>HR Members</p>
+            <span>HR team in system</span>
           </div>
         </div>
 
         <div class="card">
           <div class="card-icon"><i class="fas fa-chart-pie"></i></div>
           <div class="card-info">
-            <h3>92%</h3>
-            <p>Performance Rate</p>
-            <span>Across all departments</span>
+            <h3><?php echo $employeesCount; ?></h3>
+            <p>Pending Requests</p>
+            <span>Users stored in database</span>
           </div>
         </div>
       </section>
@@ -173,10 +195,10 @@ if ($result && $row = mysqli_fetch_assoc($result)) {
                 <p>Control admin and HR access</p>
               </a>
 
-              <a href="requestsadmin.php" class="quick-card">
-                <i class="fas fa-file-signature"></i>
-                <h4>Review Requests</h4>
-                <p>Approve or reject submissions</p>
+              <a href="manageusers.php" class="quick-card">
+                <i class="fas fa-users"></i>
+                <h4>View Users</h4>
+                <p>Browse all users in the system</p>
               </a>
 
               <a href="analytics.php" class="quick-card">
@@ -187,55 +209,45 @@ if ($result && $row = mysqli_fetch_assoc($result)) {
             </div>
           </div>
 
-          <!-- Recent Requests -->
+          <!-- Recent Users -->
           <div class="panel">
             <div class="panel-header">
-              <h2>Recent Requests</h2>
-              <a href="requestsadmin.php">View All</a>
+              <h2>Recent Users</h2>
+              <a href="manageusers.php">View All</a>
             </div>
 
             <div class="table-wrapper">
-              <table>
+              <table id="usersTable">
                 <thead>
                   <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                    <th>Status</th>
+                    <th>Full Name</th>
+                    <th>Username</th>
+                    <th>Role</th>
                     <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td>Sarah Ahmad</td>
-                    <td>sarah@example.com</td>
-                    <td>+962791234567</td>
-                    <td><span class="status pending">Pending</span></td>
-                    <td>
-                      <button type="button" class="action-btn approve">Approve</button>
-                      <button type="button" class="action-btn reject">Reject</button>
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td>Omar Khaled</td>
-                    <td>omar@example.com</td>
-                    <td>+962781112233</td>
-                    <td><span class="status approved">Approved</span></td>
-                    <td>
-                      <button type="button" class="action-btn view">View</button>
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td>Lina Samer</td>
-                    <td>lina@example.com</td>
-                    <td>+962799998877</td>
-                    <td><span class="status rejected">Rejected</span></td>
-                    <td>
-                      <button type="button" class="action-btn view">View</button>
-                    </td>
-                  </tr>
+                  <?php if ($usersResult && mysqli_num_rows($usersResult) > 0) { ?>
+                    <?php while ($user = mysqli_fetch_assoc($usersResult)) { ?>
+                      <tr>
+                        <td><?php echo htmlspecialchars($user['full_name']); ?></td>
+                        <td><?php echo htmlspecialchars($user['username']); ?></td>
+                        <td>
+                          <span class="status <?php echo strtolower($user['role']); ?>">
+                            <?php echo ucfirst($user['role']); ?>
+                          </span>
+                        </td>
+                        <td>
+                          <?php if ($user['role'] == 'employee') { ?>
+                            <button type="button" class="action-btn approve">Approve</button>
+                            <button type="button" class="action-btn reject">Reject</button>
+                          <?php } else { ?>
+                            <button type="button" class="action-btn view">View</button>
+                          <?php } ?>
+                        </td>
+                      </tr>
+                    <?php } ?>
+                  <?php } ?>
                 </tbody>
               </table>
             </div>
@@ -256,24 +268,24 @@ if ($result && $row = mysqli_fetch_assoc($result)) {
               <div class="notification-item">
                 <div class="notif-icon teal"><i class="fas fa-bell"></i></div>
                 <div>
-                  <h4>3 new join requests</h4>
-                  <p>Waiting for admin approval</p>
+                  <h4>System is running smoothly</h4>
+                  <p>All user records are available</p>
                 </div>
               </div>
 
               <div class="notification-item">
                 <div class="notif-icon green"><i class="fas fa-user-check"></i></div>
                 <div>
-                  <h4>5 employees updated profiles</h4>
-                  <p>Today at 10:30 AM</p>
+                  <h4><?php echo $employeesCount; ?> users in database</h4>
+                  <p>Live count loaded successfully</p>
                 </div>
               </div>
 
               <div class="notification-item">
                 <div class="notif-icon red"><i class="fas fa-triangle-exclamation"></i></div>
                 <div>
-                  <h4>Password reset request</h4>
-                  <p>Security action required</p>
+                  <h4>Remember to review roles</h4>
+                  <p>Check admin and HR access levels</p>
                 </div>
               </div>
             </div>
@@ -289,32 +301,32 @@ if ($result && $row = mysqli_fetch_assoc($result)) {
               <div class="activity-item">
                 <span class="dot teal-dot"></span>
                 <div>
-                  <h4>Admin approved Sarah Ahmad's request</h4>
-                  <p>2 minutes ago</p>
+                  <h4>Admin logged in successfully</h4>
+                  <p>Session started for <?php echo $full_name; ?></p>
                 </div>
               </div>
 
               <div class="activity-item">
                 <span class="dot green-dot"></span>
                 <div>
-                  <h4>New HR report was generated</h4>
-                  <p>20 minutes ago</p>
+                  <h4>User list loaded</h4>
+                  <p>Live data fetched from database</p>
                 </div>
               </div>
 
               <div class="activity-item">
                 <span class="dot orange-dot"></span>
                 <div>
-                  <h4>Omar Khaled submitted a document</h4>
-                  <p>1 hour ago</p>
+                  <h4>Search feature active</h4>
+                  <p>Filter users by name, username, or role</p>
                 </div>
               </div>
 
               <div class="activity-item">
                 <span class="dot red-dot"></span>
                 <div>
-                  <h4>System flagged an unusual login attempt</h4>
-                  <p>Today</p>
+                  <h4>Logout protection enabled</h4>
+                  <p>Dashboard is secured by session</p>
                 </div>
               </div>
             </div>
@@ -328,24 +340,24 @@ if ($result && $row = mysqli_fetch_assoc($result)) {
 
             <div class="overview-box">
               <div class="overview-row">
-                <span>Employees Active</span>
-                <strong>108</strong>
+                <span>Total Users</span>
+                <strong><?php echo $employeesCount; ?></strong>
               </div>
               <div class="overview-row">
-                <span>HR Managers</span>
-                <strong>6</strong>
+                <span>HR Members</span>
+                <strong><?php echo $hrCount; ?></strong>
               </div>
               <div class="overview-row">
                 <span>Admins</span>
-                <strong>2</strong>
+                <strong><?php echo $adminCount; ?></strong>
               </div>
               <div class="overview-row">
-                <span>Reports Generated</span>
-                <strong>34</strong>
+                <span>Logged In Admin</span>
+                <strong><?php echo htmlspecialchars($full_name); ?></strong>
               </div>
               <div class="overview-row">
-                <span>Open Requests</span>
-                <strong>15</strong>
+                <span>Status</span>
+                <strong>Online</strong>
               </div>
             </div>
           </div>
@@ -365,7 +377,7 @@ if ($result && $row = mysqli_fetch_assoc($result)) {
       popup.textContent = message;
       popup.className = "action-popup show " + type;
 
-      setTimeout(() => {
+      setTimeout(function () {
         popup.className = "action-popup";
       }, 2500);
     }
@@ -374,30 +386,48 @@ if ($result && $row = mysqli_fetch_assoc($result)) {
       const approveButtons = document.querySelectorAll(".action-btn.approve");
       const rejectButtons = document.querySelectorAll(".action-btn.reject");
       const viewButtons = document.querySelectorAll(".action-btn.view");
+      const searchInput = document.getElementById("userSearch");
+      const tableRows = document.querySelectorAll("#usersTable tbody tr");
 
-      approveButtons.forEach(button => {
+      approveButtons.forEach(function(button) {
         button.addEventListener("click", function () {
           const row = this.closest("tr");
           const name = row.querySelector("td").textContent;
-          showPopup(name + " has been approved successfully.", "success");
+          showPopup(name + " approved successfully.", "success");
         });
       });
 
-      rejectButtons.forEach(button => {
+      rejectButtons.forEach(function(button) {
         button.addEventListener("click", function () {
           const row = this.closest("tr");
           const name = row.querySelector("td").textContent;
-          showPopup(name + " has been rejected.", "error");
+          showPopup(name + " is rejected.", "error");
         });
       });
 
-      viewButtons.forEach(button => {
+      viewButtons.forEach(function(button) {
         button.addEventListener("click", function () {
           const row = this.closest("tr");
           const name = row.querySelector("td").textContent;
-          showPopup("Viewing details for " + name + ".", "info");
+          showPopup("Viewing profile for " + name + ".", "info");
         });
       });
+
+      if (searchInput) {
+        searchInput.addEventListener("keyup", function () {
+          const searchValue = this.value.toLowerCase();
+
+          tableRows.forEach(function(row) {
+            const rowText = row.textContent.toLowerCase();
+
+            if (rowText.includes(searchValue)) {
+              row.style.display = "";
+            } else {
+              row.style.display = "none";
+            }
+          });
+        });
+      }
     });
   </script>
 
