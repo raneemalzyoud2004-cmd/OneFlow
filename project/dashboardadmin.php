@@ -43,6 +43,15 @@ if ($adminResult && $adminRow = mysqli_fetch_assoc($adminResult)) {
 // Get users list
 $usersQuery = "SELECT id, full_name, username, role FROM users ORDER BY id DESC";
 $usersResult = mysqli_query($conn, $usersQuery);
+
+// Search data for JS
+$searchUsers = [];
+$searchResult = mysqli_query($conn, "SELECT id, full_name, username FROM users");
+if ($searchResult) {
+    while ($row = mysqli_fetch_assoc($searchResult)) {
+        $searchUsers[] = $row;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -57,7 +66,6 @@ $usersResult = mysqli_query($conn, $usersQuery);
 
   <div class="dashboard-container">
 
-    <!-- Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-top">
         <div class="logo-box">
@@ -86,10 +94,8 @@ $usersResult = mysqli_query($conn, $usersQuery);
       </div>
     </aside>
 
-    <!-- Main Content -->
     <main class="main-content">
 
-      <!-- Topbar -->
       <header class="topbar">
         <div class="topbar-left">
           <h1>Admin Dashboard</h1>
@@ -99,7 +105,13 @@ $usersResult = mysqli_query($conn, $usersQuery);
         <div class="topbar-right">
           <div class="search-box">
             <i class="fas fa-search"></i>
-            <input type="text" id="userSearch" placeholder="Search users by name, username, or role...">
+            <input type="text" id="userSearch" list="usersList" placeholder="Search users by name or username...">
+            <datalist id="usersList">
+              <?php foreach ($searchUsers as $searchUser) { ?>
+                <option value="<?php echo htmlspecialchars($searchUser['full_name']); ?>"></option>
+                <option value="<?php echo htmlspecialchars($searchUser['username']); ?>"></option>
+              <?php } ?>
+            </datalist>
           </div>
 
           <a href="notifications.php" class="icon-btn notification-bell">
@@ -119,7 +131,6 @@ $usersResult = mysqli_query($conn, $usersQuery);
         </div>
       </header>
 
-      <!-- Hero Banner -->
       <section class="hero-banner">
         <div class="hero-text">
           <h2>Welcome back, <?php echo $full_name; ?> 👋</h2>
@@ -131,7 +142,6 @@ $usersResult = mysqli_query($conn, $usersQuery);
         </div>
       </section>
 
-      <!-- Stats -->
       <section class="cards">
         <div class="card">
           <div class="card-icon"><i class="fas fa-users"></i></div>
@@ -170,13 +180,10 @@ $usersResult = mysqli_query($conn, $usersQuery);
         </div>
       </section>
 
-      <!-- Dashboard Grid -->
       <section class="dashboard-grid">
 
-        <!-- Left Column -->
         <div class="left-column">
 
-          <!-- Quick Actions -->
           <div class="panel">
             <div class="panel-header">
               <h2>Quick Actions</h2>
@@ -209,7 +216,6 @@ $usersResult = mysqli_query($conn, $usersQuery);
             </div>
           </div>
 
-          <!-- Recent Users -->
           <div class="panel">
             <div class="panel-header">
               <h2>Recent Users</h2>
@@ -241,8 +247,9 @@ $usersResult = mysqli_query($conn, $usersQuery);
                           <?php if ($user['role'] == 'employee') { ?>
                             <button type="button" class="action-btn approve">Approve</button>
                             <button type="button" class="action-btn reject">Reject</button>
+                            <a href="employeeinfo.php?id=<?php echo $user['id']; ?>" class="action-btn view">View</a>
                           <?php } else { ?>
-                            <button type="button" class="action-btn view">View</button>
+                            <a href="employeeinfo.php?id=<?php echo $user['id']; ?>" class="action-btn view">View</a>
                           <?php } ?>
                         </td>
                       </tr>
@@ -255,10 +262,8 @@ $usersResult = mysqli_query($conn, $usersQuery);
 
         </div>
 
-        <!-- Right Column -->
         <div class="right-column">
 
-          <!-- Notifications -->
           <div class="panel">
             <div class="panel-header">
               <h2>Notifications</h2>
@@ -291,7 +296,6 @@ $usersResult = mysqli_query($conn, $usersQuery);
             </div>
           </div>
 
-          <!-- Recent Activity -->
           <div class="panel">
             <div class="panel-header">
               <h2>Recent Activity</h2>
@@ -318,7 +322,7 @@ $usersResult = mysqli_query($conn, $usersQuery);
                 <span class="dot orange-dot"></span>
                 <div>
                   <h4>Search feature active</h4>
-                  <p>Filter users by name, username, or role</p>
+                  <p>Filter users by name or username</p>
                 </div>
               </div>
 
@@ -332,7 +336,6 @@ $usersResult = mysqli_query($conn, $usersQuery);
             </div>
           </div>
 
-          <!-- Overview -->
           <div class="panel">
             <div class="panel-header">
               <h2>System Overview</h2>
@@ -368,10 +371,11 @@ $usersResult = mysqli_query($conn, $usersQuery);
     </main>
   </div>
 
-  <!-- Popup Message -->
   <div id="actionPopup" class="action-popup"></div>
 
   <script>
+    const searchUsers = <?php echo json_encode($searchUsers); ?>;
+
     function showPopup(message, type) {
       const popup = document.getElementById("actionPopup");
       popup.textContent = message;
@@ -385,9 +389,7 @@ $usersResult = mysqli_query($conn, $usersQuery);
     document.addEventListener("DOMContentLoaded", function () {
       const approveButtons = document.querySelectorAll(".action-btn.approve");
       const rejectButtons = document.querySelectorAll(".action-btn.reject");
-      const viewButtons = document.querySelectorAll(".action-btn.view");
-      const searchInput = document.getElementById("userSearch");
-      const tableRows = document.querySelectorAll("#usersTable tbody tr");
+      const userSearch = document.getElementById("userSearch");
 
       approveButtons.forEach(function(button) {
         button.addEventListener("click", function () {
@@ -401,31 +403,26 @@ $usersResult = mysqli_query($conn, $usersQuery);
         button.addEventListener("click", function () {
           const row = this.closest("tr");
           const name = row.querySelector("td").textContent;
-          showPopup(name + " is rejected.", "error");
+          showPopup(name + " rejected.", "error");
         });
       });
 
-      viewButtons.forEach(function(button) {
-        button.addEventListener("click", function () {
-          const row = this.closest("tr");
-          const name = row.querySelector("td").textContent;
-          showPopup("Viewing profile for " + name + ".", "info");
-        });
-      });
+      if (userSearch) {
+        userSearch.addEventListener("keydown", function(e) {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            const searchValue = this.value.trim().toLowerCase();
 
-      if (searchInput) {
-        searchInput.addEventListener("keyup", function () {
-          const searchValue = this.value.toLowerCase();
+            const matchedUser = searchUsers.find(function(user) {
+              return user.full_name.toLowerCase() === searchValue || user.username.toLowerCase() === searchValue;
+            });
 
-          tableRows.forEach(function(row) {
-            const rowText = row.textContent.toLowerCase();
-
-            if (rowText.includes(searchValue)) {
-              row.style.display = "";
+            if (matchedUser) {
+              window.location.href = "employeeinfo.php?id=" + matchedUser.id;
             } else {
-              row.style.display = "none";
+              showPopup("User not found.", "error");
             }
-          });
+          }
         });
       }
     });

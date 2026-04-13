@@ -524,6 +524,8 @@ table th {
   color: white;
   transition: 0.3s;
   font-weight: 700;
+  display: inline-block;
+  text-decoration: none;
 }
 
 .action-btn.approve {
