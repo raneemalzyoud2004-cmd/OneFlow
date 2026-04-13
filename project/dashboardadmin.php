@@ -21,6 +21,19 @@ $result = mysqli_query($conn, $query);
 if ($result && $row = mysqli_fetch_assoc($result)) {
     $employeesCount = $row['total'];
 }
+
+// Pending Requests Count
+$pendingRequests = 0;
+$checkRequestsTable = mysqli_query($conn, "SHOW TABLES LIKE 'requests'");
+
+if ($checkRequestsTable && mysqli_num_rows($checkRequestsTable) > 0) {
+    $pendingQuery = "SELECT COUNT(*) AS total FROM requests WHERE status = 'pending'";
+    $pendingResult = mysqli_query($conn, $pendingQuery);
+
+    if ($pendingResult && $pendingRow = mysqli_fetch_assoc($pendingResult)) {
+        $pendingRequests = $pendingRow['total'];
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -101,7 +114,7 @@ if ($result && $row = mysqli_fetch_assoc($result)) {
       <section class="hero-banner">
         <div class="hero-text">
           <h2>Welcome back, <?php echo $full_name; ?> 👋</h2>
-          <p>You have <strong>15 pending requests</strong>, <strong>3 new alerts</strong>, and <strong>12 new user activities</strong> today.</p>
+          <p>You have <strong><?php echo $pendingRequests; ?> pending requests</strong>, <strong>3 new alerts</strong>, and <strong>12 new user activities</strong> today.</p>
         </div>
         <div class="hero-actions">
           <a href="manageusers.php" class="hero-btn primary-btn"><i class="fas fa-user-plus"></i> Add New User</a>
@@ -123,9 +136,9 @@ if ($result && $row = mysqli_fetch_assoc($result)) {
         <div class="card">
           <div class="card-icon"><i class="fas fa-hourglass-half"></i></div>
           <div class="card-info">
-            <h3>15</h3>
+            <h3><?php echo $pendingRequests; ?></h3>
             <p>Pending Requests</p>
-            <span>Needs review today</span>
+            <span>Live count from database</span>
           </div>
         </div>
 
