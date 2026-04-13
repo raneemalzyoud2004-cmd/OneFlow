@@ -1,5 +1,6 @@
 <?php
 session_start();
+include("config.php");
 
 header("Cache-Control: no-cache, no-store, must-revalidate");
 header("Pragma: no-cache");
@@ -11,6 +12,15 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'admin') {
 }
 
 $full_name = $_SESSION['full_name'];
+
+// Total Employees Count
+$employeesCount = 0;
+$query = "SELECT COUNT(*) AS total FROM users";
+$result = mysqli_query($conn, $query);
+
+if ($result && $row = mysqli_fetch_assoc($result)) {
+    $employeesCount = $row['total'];
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -36,13 +46,13 @@ $full_name = $_SESSION['full_name'];
       </div>
 
       <ul class="sidebar-menu">
-        <li class="active"><a href="#"><i class="fas fa-house"></i> Dashboard</a></li>
-       <li><a href="manageusers.php"><i class="fas fa-users"></i> Manage Users</a></li>
-        <li><a href="#"><i class="fas fa-user-tie"></i> HR Team</a></li>
-<li><a href="requestsadmin.php"><i class="fas fa-file-circle-check"></i> Requests</a></li>
-       <li><a href="analytics.php"><i class="fas fa-chart-line"></i> Analytics</a></li>
-       <li><a href="notifications.php">Notifications</a></li>
-        <li><a href="#"><i class="fas fa-gear"></i> Settings</a></li>
+        <li class="active"><a href="dashboardadmin.php"><i class="fas fa-house"></i> Dashboard</a></li>
+        <li><a href="manageusers.php"><i class="fas fa-users"></i> Manage Users</a></li>
+        <li><a href="hrteam.php"><i class="fas fa-user-tie"></i> HR Team</a></li>
+        <li><a href="requestsadmin.php"><i class="fas fa-file-circle-check"></i> Requests</a></li>
+        <li><a href="analytics.php"><i class="fas fa-chart-line"></i> Analytics</a></li>
+        <li><a href="notifications.php"><i class="fas fa-bell"></i> Notifications</a></li>
+        <li><a href="settingsadmin.php"><i class="fas fa-gear"></i> Settings</a></li>
       </ul>
 
       <div class="sidebar-bottom">
@@ -70,30 +80,32 @@ $full_name = $_SESSION['full_name'];
             <input type="text" placeholder="Search employees, requests, reports...">
           </div>
 
-          <div class="icon-btn notification-bell">
+          <a href="notifications.php" class="icon-btn notification-bell">
             <i class="fas fa-bell"></i>
             <span class="notif-count">3</span>
-          </div>
+          </a>
 
           <div class="admin-profile">
-<div class="admin-avatar"><?php echo strtoupper(substr($full_name, 0, 1)); ?></div>            <div>
-<h4><?php echo htmlspecialchars($full_name); ?></h4>
+            <div class="admin-avatar">A</div>
+            <div>
+              <h4><?php echo $full_name; ?></h4>
               <span>Super Admin</span>
             </div>
           </div>
 
-<a href="logout.php" class="logout-btn">Logout</a>   </div>
+          <a href="logout.php" class="logout-btn">Logout</a>
+        </div>
       </header>
 
       <!-- Hero Banner -->
       <section class="hero-banner">
         <div class="hero-text">
-<h2>Welcome back, <?php echo htmlspecialchars($full_name); ?> 👋</h2>
+          <h2>Welcome back, <?php echo $full_name; ?> 👋</h2>
           <p>You have <strong>15 pending requests</strong>, <strong>3 new alerts</strong>, and <strong>12 new user activities</strong> today.</p>
         </div>
         <div class="hero-actions">
-          <button class="hero-btn primary-btn"><i class="fas fa-user-plus"></i> Add New User</button>
-          <button class="hero-btn secondary-btn"><i class="fas fa-file-export"></i> Export Report</button>
+          <a href="manageusers.php" class="hero-btn primary-btn"><i class="fas fa-user-plus"></i> Add New User</a>
+          <a href="analytics.php" class="hero-btn secondary-btn"><i class="fas fa-file-export"></i> Export Report</a>
         </div>
       </section>
 
@@ -102,9 +114,9 @@ $full_name = $_SESSION['full_name'];
         <div class="card">
           <div class="card-icon"><i class="fas fa-users"></i></div>
           <div class="card-info">
-            <h3>120</h3>
+            <h3><?php echo $employeesCount; ?></h3>
             <p>Total Employees</p>
-            <span>+8 this month</span>
+            <span>Live count from database</span>
           </div>
         </div>
 
@@ -149,29 +161,29 @@ $full_name = $_SESSION['full_name'];
             </div>
 
             <div class="quick-actions">
-              <div class="quick-card">
+              <a href="manageusers.php" class="quick-card">
                 <i class="fas fa-user-plus"></i>
                 <h4>Add Employee</h4>
                 <p>Create a new employee account</p>
-              </div>
+              </a>
 
-              <div class="quick-card">
+              <a href="settingsadmin.php" class="quick-card">
                 <i class="fas fa-user-shield"></i>
                 <h4>Manage Roles</h4>
                 <p>Control admin and HR access</p>
-              </div>
+              </a>
 
-              <div class="quick-card">
+              <a href="requestsadmin.php" class="quick-card">
                 <i class="fas fa-file-signature"></i>
                 <h4>Review Requests</h4>
                 <p>Approve or reject submissions</p>
-              </div>
+              </a>
 
-              <div class="quick-card">
+              <a href="analytics.php" class="quick-card">
                 <i class="fas fa-chart-column"></i>
                 <h4>Generate Report</h4>
                 <p>View and export system insights</p>
-              </div>
+              </a>
             </div>
           </div>
 
@@ -179,7 +191,7 @@ $full_name = $_SESSION['full_name'];
           <div class="panel">
             <div class="panel-header">
               <h2>Recent Requests</h2>
-              <a href="#">View All</a>
+              <a href="requestsadmin.php">View All</a>
             </div>
 
             <div class="table-wrapper">
@@ -200,8 +212,8 @@ $full_name = $_SESSION['full_name'];
                     <td>+962791234567</td>
                     <td><span class="status pending">Pending</span></td>
                     <td>
-                      <button class="action-btn approve">Approve</button>
-                      <button class="action-btn reject">Reject</button>
+                      <button type="button" class="action-btn approve">Approve</button>
+                      <button type="button" class="action-btn reject">Reject</button>
                     </td>
                   </tr>
 
@@ -211,7 +223,7 @@ $full_name = $_SESSION['full_name'];
                     <td>+962781112233</td>
                     <td><span class="status approved">Approved</span></td>
                     <td>
-                      <button class="action-btn view">View</button>
+                      <button type="button" class="action-btn view">View</button>
                     </td>
                   </tr>
 
@@ -221,7 +233,7 @@ $full_name = $_SESSION['full_name'];
                     <td>+962799998877</td>
                     <td><span class="status rejected">Rejected</span></td>
                     <td>
-                      <button class="action-btn view">View</button>
+                      <button type="button" class="action-btn view">View</button>
                     </td>
                   </tr>
                 </tbody>
@@ -343,6 +355,51 @@ $full_name = $_SESSION['full_name'];
 
     </main>
   </div>
+
+  <!-- Popup Message -->
+  <div id="actionPopup" class="action-popup"></div>
+
+  <script>
+    function showPopup(message, type) {
+      const popup = document.getElementById("actionPopup");
+      popup.textContent = message;
+      popup.className = "action-popup show " + type;
+
+      setTimeout(() => {
+        popup.className = "action-popup";
+      }, 2500);
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      const approveButtons = document.querySelectorAll(".action-btn.approve");
+      const rejectButtons = document.querySelectorAll(".action-btn.reject");
+      const viewButtons = document.querySelectorAll(".action-btn.view");
+
+      approveButtons.forEach(button => {
+        button.addEventListener("click", function () {
+          const row = this.closest("tr");
+          const name = row.querySelector("td").textContent;
+          showPopup(name + " has been approved successfully.", "success");
+        });
+      });
+
+      rejectButtons.forEach(button => {
+        button.addEventListener("click", function () {
+          const row = this.closest("tr");
+          const name = row.querySelector("td").textContent;
+          showPopup(name + " has been rejected.", "error");
+        });
+      });
+
+      viewButtons.forEach(button => {
+        button.addEventListener("click", function () {
+          const row = this.closest("tr");
+          const name = row.querySelector("td").textContent;
+          showPopup("Viewing details for " + name + ".", "info");
+        });
+      });
+    });
+  </script>
 
 </body>
 </html>
