@@ -15,6 +15,50 @@ $full_name = $_SESSION['full_name'];
 $addUserMessage = "";
 $addUserType = "";
 
+/* Handle Add Todo */
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_todo'])) {
+    $taskText = trim($_POST['task_text']);
+
+    if (!empty($taskText)) {
+        $stmt = mysqli_prepare($conn, "INSERT INTO admin_todos (task_text, status) VALUES (?, 'pending')");
+        if ($stmt) {
+            mysqli_stmt_bind_param($stmt, "s", $taskText);
+            mysqli_stmt_execute($stmt);
+            mysqli_stmt_close($stmt);
+        }
+    }
+
+    header("Location: dashboardadmin.php");
+    exit();
+}
+
+/* Handle Toggle Todo Status */
+if (isset($_GET['toggle_todo'])) {
+    $todoId = (int) $_GET['toggle_todo'];
+
+    $checkQuery = "SELECT status FROM admin_todos WHERE id = $todoId";
+    $checkResult = mysqli_query($conn, $checkQuery);
+
+    if ($checkResult && mysqli_num_rows($checkResult) > 0) {
+        $todoRow = mysqli_fetch_assoc($checkResult);
+        $newStatus = ($todoRow['status'] === 'pending') ? 'done' : 'pending';
+
+        mysqli_query($conn, "UPDATE admin_todos SET status = '$newStatus' WHERE id = $todoId");
+    }
+
+    header("Location: dashboardadmin.php");
+    exit();
+}
+
+/* Handle Delete Todo */
+if (isset($_GET['delete_todo'])) {
+    $todoId = (int) $_GET['delete_todo'];
+    mysqli_query($conn, "DELETE FROM admin_todos WHERE id = $todoId");
+
+    header("Location: dashboardadmin.php");
+    exit();
+}
+
 /* Total Employees Count */
 $employeesCount = 0;
 $query = "SELECT COUNT(*) AS total FROM users";
@@ -41,6 +85,7 @@ $adminResult = mysqli_query($conn, $adminQuery);
 if ($adminResult && $adminRow = mysqli_fetch_assoc($adminResult)) {
     $adminCount = $adminRow['total'];
 }
+
 /* Count Pending Requests */
 $pendingRequestsCount = 0;
 $pendingQuery = "SELECT COUNT(*) AS total FROM requests WHERE status = 'pending'";
@@ -62,6 +107,10 @@ if ($searchResult) {
         $searchUsers[] = $row;
     }
 }
+
+/* Get Todos */
+$todosQuery = "SELECT * FROM admin_todos ORDER BY id DESC";
+$todosResult = mysqli_query($conn, $todosQuery);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -349,14 +398,14 @@ if ($searchResult) {
           </div>
         </div>
 
-       <div class="card">
-  <div class="card-icon"><i class="fas fa-chart-pie"></i></div>
-  <div class="card-info">
-    <h3><?php echo $pendingRequestsCount; ?></h3>
-    <p>Pending Requests</p>
-    <span>Live count from requests table</span>
-  </div>
-</div>
+        <div class="card">
+          <div class="card-icon"><i class="fas fa-chart-pie"></i></div>
+          <div class="card-info">
+            <h3><?php echo $pendingRequestsCount; ?></h3>
+            <p>Pending Requests</p>
+            <span>Live count from requests table</span>
+          </div>
+        </div>
       </section>
 
       <section class="dashboard-grid">
@@ -444,33 +493,45 @@ if ($searchResult) {
 
           <div class="panel">
             <div class="panel-header">
-              <h2>Notifications</h2>
+              <h2>Admin To-Do List</h2>
             </div>
 
-            <div class="notification-list">
-              <div class="notification-item">
-                <div class="notif-icon teal"><i class="fas fa-bell"></i></div>
-                <div>
-                  <h4>System is running smoothly</h4>
-                  <p>All user records are available</p>
-                </div>
-              </div>
+            <form method="POST" class="todo-form">
+              <input type="text" name="task_text" placeholder="Write a new admin task..." required>
+              <button type="submit" name="add_todo">Add</button>
+            </form>
 
-              <div class="notification-item">
-                <div class="notif-icon green"><i class="fas fa-user-check"></i></div>
-                <div>
-                  <h4><?php echo $employeesCount; ?> users in database</h4>
-                  <p>Live count loaded successfully</p>
-                </div>
-              </div>
+            <div class="todo-db-list">
+              <?php if ($todosResult && mysqli_num_rows($todosResult) > 0) { ?>
+                <?php while ($todo = mysqli_fetch_assoc($todosResult)) { ?>
+                  <div class="todo-db-item <?php echo $todo['status']; ?>">
+                    <div class="todo-db-left">
+                      <a href="dashboardadmin.php?toggle_todo=<?php echo $todo['id']; ?>" class="todo-check-btn">
+                        <?php if ($todo['status'] === 'done') { ?>
+                          <i class="fas fa-circle-check"></i>
+                        <?php } else { ?>
+                          <i class="far fa-circle"></i>
+                        <?php } ?>
+                      </a>
 
-              <div class="notification-item">
-                <div class="notif-icon red"><i class="fas fa-triangle-exclamation"></i></div>
-                <div>
-                  <h4>Remember to review roles</h4>
-                  <p>Check admin and HR access levels</p>
-                </div>
-              </div>
+                      <div class="todo-db-text">
+                        <h4 class="<?php echo $todo['status'] === 'done' ? 'completed-text' : ''; ?>">
+                          <?php echo htmlspecialchars($todo['task_text']); ?>
+                        </h4>
+                        <span class="todo-badge <?php echo $todo['status']; ?>">
+                          <?php echo ucfirst($todo['status']); ?>
+                        </span>
+                      </div>
+                    </div>
+
+                    <a href="dashboardadmin.php?delete_todo=<?php echo $todo['id']; ?>" class="todo-delete-btn" onclick="return confirm('Delete this task?');">
+                      <i class="fas fa-trash"></i>
+                    </a>
+                  </div>
+                <?php } ?>
+              <?php } else { ?>
+                <p class="empty-todo-text">No tasks yet. Add your first task.</p>
+              <?php } ?>
             </div>
           </div>
 
@@ -565,27 +626,27 @@ if ($searchResult) {
         <div class="form-grid">
           <div class="form-group">
             <label>Full Name</label>
-            <input type="text" name="full_name" placeholder="Enter full name" required>
+            <input type="text" name="full_name" placeholder="Enter full name">
           </div>
 
           <div class="form-group">
             <label>Username</label>
-            <input type="text" name="username" placeholder="Enter username" required>
+            <input type="text" name="username" placeholder="Enter username">
           </div>
 
           <div class="form-group">
             <label>Email</label>
-            <input type="email" name="email" placeholder="Enter email address" required>
+            <input type="email" name="email" placeholder="Enter email address">
           </div>
 
           <div class="form-group">
             <label>Password</label>
-            <input type="password" name="password" placeholder="Enter password" required>
+            <input type="password" name="password" placeholder="Enter password">
           </div>
 
           <div class="form-group full-width">
             <label>Role</label>
-            <select name="role" required>
+            <select name="role">
               <option value="">Select role</option>
               <option value="admin">Admin</option>
               <option value="hr">HR</option>
