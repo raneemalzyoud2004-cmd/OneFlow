@@ -41,6 +41,14 @@ $adminResult = mysqli_query($conn, $adminQuery);
 if ($adminResult && $adminRow = mysqli_fetch_assoc($adminResult)) {
     $adminCount = $adminRow['total'];
 }
+/* Count Pending Requests */
+$pendingRequestsCount = 0;
+$pendingQuery = "SELECT COUNT(*) AS total FROM requests WHERE status = 'pending'";
+$pendingResult = mysqli_query($conn, $pendingQuery);
+
+if ($pendingResult && $pendingRow = mysqli_fetch_assoc($pendingResult)) {
+    $pendingRequestsCount = $pendingRow['total'];
+}
 
 /* Get users list */
 $usersQuery = "SELECT id, full_name, username, role FROM users ORDER BY id DESC";
@@ -341,14 +349,14 @@ if ($searchResult) {
           </div>
         </div>
 
-        <div class="card">
-          <div class="card-icon"><i class="fas fa-chart-pie"></i></div>
-          <div class="card-info">
-            <h3><?php echo $employeesCount; ?></h3>
-            <p>Pending Requests</p>
-            <span>Users stored in database</span>
-          </div>
-        </div>
+       <div class="card">
+  <div class="card-icon"><i class="fas fa-chart-pie"></i></div>
+  <div class="card-info">
+    <h3><?php echo $pendingRequestsCount; ?></h3>
+    <p>Pending Requests</p>
+    <span>Live count from requests table</span>
+  </div>
+</div>
       </section>
 
       <section class="dashboard-grid">
