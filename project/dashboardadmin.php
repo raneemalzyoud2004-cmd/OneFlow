@@ -12,8 +12,10 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'admin') {
 }
 
 $full_name = $_SESSION['full_name'];
+$addUserMessage = "";
+$addUserType = "";
 
-// Total Employees Count
+/* Total Employees Count */
 $employeesCount = 0;
 $query = "SELECT COUNT(*) AS total FROM users";
 $result = mysqli_query($conn, $query);
@@ -22,7 +24,7 @@ if ($result && $row = mysqli_fetch_assoc($result)) {
     $employeesCount = $row['total'];
 }
 
-// Count HR users
+/* Count HR users */
 $hrCount = 0;
 $hrQuery = "SELECT COUNT(*) AS total FROM users WHERE role = 'hr'";
 $hrResult = mysqli_query($conn, $hrQuery);
@@ -31,7 +33,7 @@ if ($hrResult && $hrRow = mysqli_fetch_assoc($hrResult)) {
     $hrCount = $hrRow['total'];
 }
 
-// Count Admin users
+/* Count Admin users */
 $adminCount = 0;
 $adminQuery = "SELECT COUNT(*) AS total FROM users WHERE role = 'admin'";
 $adminResult = mysqli_query($conn, $adminQuery);
@@ -40,11 +42,11 @@ if ($adminResult && $adminRow = mysqli_fetch_assoc($adminResult)) {
     $adminCount = $adminRow['total'];
 }
 
-// Get users list
+/* Get users list */
 $usersQuery = "SELECT id, full_name, username, role FROM users ORDER BY id DESC";
 $usersResult = mysqli_query($conn, $usersQuery);
 
-// Search data for JS
+/* Search data for JS */
 $searchUsers = [];
 $searchResult = mysqli_query($conn, "SELECT id, full_name, username FROM users");
 if ($searchResult) {
@@ -114,15 +116,183 @@ if ($searchResult) {
             </datalist>
           </div>
 
-          <a href="notifications.php" class="icon-btn notification-bell">
-            <i class="fas fa-bell"></i>
-            <span class="notif-count">3</span>
-          </a>
+          <div class="notification-wrapper" style="position: relative;">
+            <button
+              type="button"
+              class="icon-btn notification-bell"
+              id="notificationBellBtn"
+              style="border:none; outline:none;"
+            >
+              <i class="fas fa-bell"></i>
+              <span class="notif-count">3</span>
+            </button>
+
+            <div
+              id="notificationDropdown"
+              style="
+                display:none;
+                position:absolute;
+                top:62px;
+                right:0;
+                width:340px;
+                background:#ffffff;
+                border:1px solid #e5eef5;
+                border-radius:18px;
+                box-shadow:0 20px 45px rgba(15,23,42,0.14);
+                padding:16px;
+                z-index:9999;
+              "
+            >
+              <div
+                style="
+                  display:flex;
+                  justify-content:space-between;
+                  align-items:center;
+                  margin-bottom:14px;
+                  padding-bottom:12px;
+                  border-bottom:1px solid #edf2f7;
+                "
+              >
+                <h3 style="font-size:17px; color:#0f172a; margin:0;">Recent Notifications</h3>
+                <span
+                  style="
+                    font-size:12px;
+                    font-weight:700;
+                    color:#14b8a6;
+                    background:#ecfeff;
+                    padding:6px 10px;
+                    border-radius:999px;
+                  "
+                >
+                  3 New
+                </span>
+              </div>
+
+              <div style="display:flex; flex-direction:column; gap:12px;">
+
+                <div
+                  style="
+                    display:flex;
+                    gap:12px;
+                    align-items:flex-start;
+                    padding:12px;
+                    border-radius:16px;
+                    background:#f8fbff;
+                    border:1px solid #e8eef5;
+                  "
+                >
+                  <div
+                    style="
+                      width:42px;
+                      height:42px;
+                      border-radius:12px;
+                      display:flex;
+                      justify-content:center;
+                      align-items:center;
+                      color:white;
+                      flex-shrink:0;
+                      background:linear-gradient(135deg,#14b8a6,#06b6d4);
+                    "
+                  >
+                    <i class="fas fa-bell"></i>
+                  </div>
+                  <div>
+                    <h4 style="font-size:14px; color:#0f172a; margin:0 0 4px 0;">System is running smoothly</h4>
+                    <p style="font-size:12px; color:#64748b; margin:0; line-height:1.5;">All user records are available</p>
+                  </div>
+                </div>
+
+                <div
+                  style="
+                    display:flex;
+                    gap:12px;
+                    align-items:flex-start;
+                    padding:12px;
+                    border-radius:16px;
+                    background:#f8fbff;
+                    border:1px solid #e8eef5;
+                  "
+                >
+                  <div
+                    style="
+                      width:42px;
+                      height:42px;
+                      border-radius:12px;
+                      display:flex;
+                      justify-content:center;
+                      align-items:center;
+                      color:white;
+                      flex-shrink:0;
+                      background:linear-gradient(135deg,#22c55e,#10b981);
+                    "
+                  >
+                    <i class="fas fa-user-check"></i>
+                  </div>
+                  <div>
+                    <h4 style="font-size:14px; color:#0f172a; margin:0 0 4px 0;"><?php echo $employeesCount; ?> users in database</h4>
+                    <p style="font-size:12px; color:#64748b; margin:0; line-height:1.5;">Live count loaded successfully</p>
+                  </div>
+                </div>
+
+                <div
+                  style="
+                    display:flex;
+                    gap:12px;
+                    align-items:flex-start;
+                    padding:12px;
+                    border-radius:16px;
+                    background:#f8fbff;
+                    border:1px solid #e8eef5;
+                  "
+                >
+                  <div
+                    style="
+                      width:42px;
+                      height:42px;
+                      border-radius:12px;
+                      display:flex;
+                      justify-content:center;
+                      align-items:center;
+                      color:white;
+                      flex-shrink:0;
+                      background:linear-gradient(135deg,#ef4444,#f97316);
+                    "
+                  >
+                    <i class="fas fa-triangle-exclamation"></i>
+                  </div>
+                  <div>
+                    <h4 style="font-size:14px; color:#0f172a; margin:0 0 4px 0;">Remember to review roles</h4>
+                    <p style="font-size:12px; color:#64748b; margin:0; line-height:1.5;">Check admin and HR access levels</p>
+                  </div>
+                </div>
+
+              </div>
+
+              <div style="margin-top:14px; padding-top:12px; border-top:1px solid #edf2f7;">
+                <a
+                  href="notifications.php"
+                  style="
+                    display:block;
+                    width:100%;
+                    text-align:center;
+                    background:linear-gradient(90deg,#0ea5a4,#14b8a6);
+                    color:white;
+                    padding:12px 14px;
+                    border-radius:14px;
+                    font-weight:700;
+                    text-decoration:none;
+                  "
+                >
+                  View All Notifications
+                </a>
+              </div>
+            </div>
+          </div>
 
           <div class="admin-profile">
             <div class="admin-avatar">A</div>
             <div>
-              <h4><?php echo $full_name; ?></h4>
+              <h4><?php echo htmlspecialchars($full_name); ?></h4>
               <span>Super Admin</span>
             </div>
           </div>
@@ -133,12 +303,13 @@ if ($searchResult) {
 
       <section class="hero-banner">
         <div class="hero-text">
-          <h2>Welcome back, <?php echo $full_name; ?> 👋</h2>
+          <h2>Welcome back, <?php echo htmlspecialchars($full_name); ?> 👋</h2>
           <p>You currently have <strong><?php echo $employeesCount; ?> total users</strong> registered in the system.</p>
         </div>
         <div class="hero-actions">
-          <a href="manageusers.php" class="hero-btn primary-btn"><i class="fas fa-user-plus"></i> Add New User</a>
-          <a href="analytics.php" class="hero-btn secondary-btn"><i class="fas fa-file-export"></i> Export Report</a>
+          <a href="export_report.php" class="hero-btn secondary-btn">
+            <i class="fas fa-file-export"></i> Export Report
+          </a>
         </div>
       </section>
 
@@ -181,7 +352,6 @@ if ($searchResult) {
       </section>
 
       <section class="dashboard-grid">
-
         <div class="left-column">
 
           <div class="panel">
@@ -190,11 +360,11 @@ if ($searchResult) {
             </div>
 
             <div class="quick-actions">
-              <a href="manageusers.php" class="quick-card">
+              <button type="button" class="quick-card quick-card-btn" onclick="openAddUserPopup()">
                 <i class="fas fa-user-plus"></i>
                 <h4>Add Employee</h4>
                 <p>Create a new employee account</p>
-              </a>
+              </button>
 
               <a href="settingsadmin.php" class="quick-card">
                 <i class="fas fa-user-shield"></i>
@@ -306,7 +476,7 @@ if ($searchResult) {
                 <span class="dot teal-dot"></span>
                 <div>
                   <h4>Admin logged in successfully</h4>
-                  <p>Session started for <?php echo $full_name; ?></p>
+                  <p>Session started for <?php echo htmlspecialchars($full_name); ?></p>
                 </div>
               </div>
 
@@ -371,13 +541,72 @@ if ($searchResult) {
     </main>
   </div>
 
+  <div class="modal-overlay" id="addUserModal" style="display: none;">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div>
+          <h2>Add New User</h2>
+          <p>Create a new account directly from the dashboard.</p>
+        </div>
+        <button type="button" class="close-modal-btn" onclick="closeAddUserPopup()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <form method="POST" class="add-user-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" name="full_name" placeholder="Enter full name" required>
+          </div>
+
+          <div class="form-group">
+            <label>Username</label>
+            <input type="text" name="username" placeholder="Enter username" required>
+          </div>
+
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" name="email" placeholder="Enter email address" required>
+          </div>
+
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" name="password" placeholder="Enter password" required>
+          </div>
+
+          <div class="form-group full-width">
+            <label>Role</label>
+            <select name="role" required>
+              <option value="">Select role</option>
+              <option value="admin">Admin</option>
+              <option value="hr">HR</option>
+              <option value="employee">Employee</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="cancel-btn" onclick="closeAddUserPopup()">Cancel</button>
+          <button type="submit" name="add_user" class="save-user-btn">
+            <i class="fas fa-user-plus"></i> Add User
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div id="actionPopup" class="action-popup"></div>
 
   <script>
     const searchUsers = <?php echo json_encode($searchUsers); ?>;
+    const addUserMessage = <?php echo json_encode($addUserMessage); ?>;
+    const addUserType = <?php echo json_encode($addUserType); ?>;
 
     function showPopup(message, type) {
       const popup = document.getElementById("actionPopup");
+      if (!popup) return;
+
       popup.textContent = message;
       popup.className = "action-popup show " + type;
 
@@ -386,10 +615,31 @@ if ($searchResult) {
       }, 2500);
     }
 
+    function openAddUserPopup() {
+      const modal = document.getElementById("addUserModal");
+      if (!modal) return;
+
+      modal.style.display = "flex";
+      modal.classList.add("show");
+      document.body.classList.add("modal-open");
+    }
+
+    function closeAddUserPopup() {
+      const modal = document.getElementById("addUserModal");
+      if (!modal) return;
+
+      modal.classList.remove("show");
+      modal.style.display = "none";
+      document.body.classList.remove("modal-open");
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
       const approveButtons = document.querySelectorAll(".action-btn.approve");
       const rejectButtons = document.querySelectorAll(".action-btn.reject");
       const userSearch = document.getElementById("userSearch");
+      const addUserModal = document.getElementById("addUserModal");
+      const notificationBellBtn = document.getElementById("notificationBellBtn");
+      const notificationDropdown = document.getElementById("notificationDropdown");
 
       approveButtons.forEach(function(button) {
         button.addEventListener("click", function () {
@@ -424,6 +674,52 @@ if ($searchResult) {
             }
           }
         });
+      }
+
+      if (notificationBellBtn && notificationDropdown) {
+        notificationBellBtn.addEventListener("click", function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          if (notificationDropdown.style.display === "block") {
+            notificationDropdown.style.display = "none";
+          } else {
+            notificationDropdown.style.display = "block";
+          }
+        });
+
+        notificationDropdown.addEventListener("click", function(e) {
+          e.stopPropagation();
+        });
+
+        document.addEventListener("click", function() {
+          notificationDropdown.style.display = "none";
+        });
+      }
+
+      if (addUserModal) {
+        addUserModal.addEventListener("click", function(e) {
+          if (e.target === addUserModal) {
+            closeAddUserPopup();
+          }
+        });
+      }
+
+      document.addEventListener("keydown", function(e) {
+        if (e.key === "Escape") {
+          closeAddUserPopup();
+          if (notificationDropdown) {
+            notificationDropdown.style.display = "none";
+          }
+        }
+      });
+
+      if (addUserMessage) {
+        showPopup(addUserMessage, addUserType);
+
+        if (addUserType === "error") {
+          openAddUserPopup();
+        }
       }
     });
   </script>
