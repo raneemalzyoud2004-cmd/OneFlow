@@ -15,7 +15,22 @@ $full_name = $_SESSION['full_name'];
 $addUserMessage = "";
 $addUserType = "";
 
-/* Handle Add Todo */
+if (isset($_GET['unblock_id'])) {
+    $unblock_id = (int) $_GET['unblock_id'];
+
+    $unblock_sql = "UPDATE users SET is_blocked = 0, failed_attempts = 0 WHERE id = ? AND role IN ('hr', 'employee')";
+    $unblock_stmt = mysqli_prepare($conn, $unblock_sql);
+
+    if ($unblock_stmt) {
+        mysqli_stmt_bind_param($unblock_stmt, "i", $unblock_id);
+        mysqli_stmt_execute($unblock_stmt);
+        mysqli_stmt_close($unblock_stmt);
+    }
+
+    header("Location: dashboardadmin.php");
+    exit();
+}
+
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_todo'])) {
     $taskText = trim($_POST['task_text']);
 
@@ -32,7 +47,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_todo'])) {
     exit();
 }
 
-/* Handle Toggle Todo Status */
 if (isset($_GET['toggle_todo'])) {
     $todoId = (int) $_GET['toggle_todo'];
 
@@ -50,7 +64,6 @@ if (isset($_GET['toggle_todo'])) {
     exit();
 }
 
-/* Handle Delete Todo */
 if (isset($_GET['delete_todo'])) {
     $todoId = (int) $_GET['delete_todo'];
     mysqli_query($conn, "DELETE FROM admin_todos WHERE id = $todoId");
@@ -59,7 +72,6 @@ if (isset($_GET['delete_todo'])) {
     exit();
 }
 
-/* Total Employees Count */
 $employeesCount = 0;
 $query = "SELECT COUNT(*) AS total FROM users";
 $result = mysqli_query($conn, $query);
@@ -68,7 +80,6 @@ if ($result && $row = mysqli_fetch_assoc($result)) {
     $employeesCount = $row['total'];
 }
 
-/* Count HR users */
 $hrCount = 0;
 $hrQuery = "SELECT COUNT(*) AS total FROM users WHERE role = 'hr'";
 $hrResult = mysqli_query($conn, $hrQuery);
@@ -77,7 +88,6 @@ if ($hrResult && $hrRow = mysqli_fetch_assoc($hrResult)) {
     $hrCount = $hrRow['total'];
 }
 
-/* Count Admin users */
 $adminCount = 0;
 $adminQuery = "SELECT COUNT(*) AS total FROM users WHERE role = 'admin'";
 $adminResult = mysqli_query($conn, $adminQuery);
@@ -86,7 +96,6 @@ if ($adminResult && $adminRow = mysqli_fetch_assoc($adminResult)) {
     $adminCount = $adminRow['total'];
 }
 
-/* Count Pending Requests */
 $pendingRequestsCount = 0;
 $pendingQuery = "SELECT COUNT(*) AS total FROM requests WHERE status = 'pending'";
 $pendingResult = mysqli_query($conn, $pendingQuery);
@@ -95,11 +104,9 @@ if ($pendingResult && $pendingRow = mysqli_fetch_assoc($pendingResult)) {
     $pendingRequestsCount = $pendingRow['total'];
 }
 
-/* Get users list */
 $usersQuery = "SELECT id, full_name, username, role FROM users ORDER BY id DESC";
 $usersResult = mysqli_query($conn, $usersQuery);
 
-/* Search data for JS */
 $searchUsers = [];
 $searchResult = mysqli_query($conn, "SELECT id, full_name, username FROM users");
 if ($searchResult) {
@@ -108,9 +115,11 @@ if ($searchResult) {
     }
 }
 
-/* Get Todos */
 $todosQuery = "SELECT * FROM admin_todos ORDER BY id DESC";
 $todosResult = mysqli_query($conn, $todosQuery);
+
+$blocked_sql = "SELECT id, full_name, username, role, failed_attempts FROM users WHERE is_blocked = 1 AND role IN ('hr', 'employee')";
+$blocked_result = mysqli_query($conn, $blocked_sql);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -532,6 +541,47 @@ $todosResult = mysqli_query($conn, $todosQuery);
               <?php } else { ?>
                 <p class="empty-todo-text">No tasks yet. Add your first task.</p>
               <?php } ?>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header">
+              <h2>Blocked Accounts</h2>
+            </div>
+
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>Failed Attempts</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php if ($blocked_result && mysqli_num_rows($blocked_result) > 0) { ?>
+                    <?php while ($blocked_user = mysqli_fetch_assoc($blocked_result)) { ?>
+                      <tr>
+                        <td><?php echo htmlspecialchars($blocked_user['full_name']); ?></td>
+                        <td><?php echo htmlspecialchars($blocked_user['username']); ?></td>
+                        <td><?php echo htmlspecialchars($blocked_user['role']); ?></td>
+                        <td><?php echo htmlspecialchars($blocked_user['failed_attempts']); ?></td>
+                        <td>
+                          <a href="dashboardadmin.php?unblock_id=<?php echo $blocked_user['id']; ?>" class="action-btn approve">
+                            Unblock
+                          </a>
+                        </td>
+                      </tr>
+                    <?php } ?>
+                  <?php } else { ?>
+                    <tr>
+                      <td colspan="5">No blocked accounts found.</td>
+                    </tr>
+                  <?php } ?>
+                </tbody>
+              </table>
             </div>
           </div>
 

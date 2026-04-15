@@ -22,32 +22,76 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $password = trim($_POST['password']);
 
     if (!empty($username) && !empty($password)) {
-        $sql = "SELECT * FROM users WHERE username = ? AND password = ?";
+
+        $sql = "SELECT * FROM users WHERE username = ?";
         $stmt = mysqli_prepare($conn, $sql);
 
         if ($stmt) {
-            mysqli_stmt_bind_param($stmt, "ss", $username, $password);
+            mysqli_stmt_bind_param($stmt, "s", $username);
             mysqli_stmt_execute($stmt);
             $result = mysqli_stmt_get_result($stmt);
 
             if ($row = mysqli_fetch_assoc($result)) {
-                $_SESSION['user_id'] = $row['id'];
-                $_SESSION['full_name'] = $row['full_name'];
-                $_SESSION['username'] = $row['username'];
-                $_SESSION['role'] = $row['role'];
 
-                if ($row['role'] === 'admin') {
-                    header("Location: dashboardadmin.php");
-                    exit();
-                } elseif ($row['role'] === 'hr') {
-                    header("Location: hrdashboard.php");
-                    exit();
-                } elseif ($row['role'] === 'employee') {
-                    header("Location: dashboardemployee.php");
-                    exit();
+                if (($row['role'] === 'hr' || $row['role'] === 'employee') && $row['is_blocked'] == 1) {
+                    $error = "Your account is blocked. Please contact admin.";
                 } else {
-                    $error = "Invalid user role.";
+
+                    if ($row['password'] === $password) {
+
+                        $reset_sql = "UPDATE users SET failed_attempts = 0 WHERE id = ?";
+                        $reset_stmt = mysqli_prepare($conn, $reset_sql);
+                        mysqli_stmt_bind_param($reset_stmt, "i", $row['id']);
+                        mysqli_stmt_execute($reset_stmt);
+                        mysqli_stmt_close($reset_stmt);
+
+                        $_SESSION['user_id'] = $row['id'];
+                        $_SESSION['full_name'] = $row['full_name'];
+                        $_SESSION['username'] = $row['username'];
+                        $_SESSION['role'] = $row['role'];
+
+                        if ($row['role'] === 'admin') {
+                            header("Location: dashboardadmin.php");
+                            exit();
+                        } elseif ($row['role'] === 'hr') {
+                            header("Location: hrdashboard.php");
+                            exit();
+                        } elseif ($row['role'] === 'employee') {
+                            header("Location: dashboardemployee.php");
+                            exit();
+                        } else {
+                            $error = "Invalid user role.";
+                        }
+
+                    } else {
+
+                        if ($row['role'] === 'hr' || $row['role'] === 'employee') {
+                            $new_attempts = $row['failed_attempts'] + 1;
+
+                            if ($new_attempts >= 3) {
+                                $update_sql = "UPDATE users SET failed_attempts = ?, is_blocked = 1 WHERE id = ?";
+                                $update_stmt = mysqli_prepare($conn, $update_sql);
+                                mysqli_stmt_bind_param($update_stmt, "ii", $new_attempts, $row['id']);
+                                mysqli_stmt_execute($update_stmt);
+                                mysqli_stmt_close($update_stmt);
+
+                                $error = "Your account has been blocked after 3 failed attempts.";
+                            } else {
+                                $update_sql = "UPDATE users SET failed_attempts = ? WHERE id = ?";
+                                $update_stmt = mysqli_prepare($conn, $update_sql);
+                                mysqli_stmt_bind_param($update_stmt, "ii", $new_attempts, $row['id']);
+                                mysqli_stmt_execute($update_stmt);
+                                mysqli_stmt_close($update_stmt);
+
+                                $remaining = 3 - $new_attempts;
+                                $error = "Invalid password. You have $remaining attempt(s) left before block.";
+                            }
+                        } else {
+                            $error = "Invalid username or password.";
+                        }
+                    }
                 }
+
             } else {
                 $error = "Invalid username or password.";
             }
