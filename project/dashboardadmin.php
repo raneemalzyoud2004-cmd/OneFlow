@@ -48,14 +48,60 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_user'])) {
     }
 }
 
-// APPROVE REQUEST
 if (isset($_GET['approve_request'])) {
     $requestId = (int) $_GET['approve_request'];
-    mysqli_query($conn, "UPDATE requests SET status = 'approved' WHERE id = $requestId");
+
+    $requestQuery = "SELECT * FROM requests WHERE id = $requestId AND status = 'pending' LIMIT 1";
+    $requestResult = mysqli_query($conn, $requestQuery);
+
+    if ($requestResult && mysqli_num_rows($requestResult) > 0) {
+        $requestData = mysqli_fetch_assoc($requestResult);
+
+        $fullName = mysqli_real_escape_string($conn, $requestData['full_name']);
+        $email = mysqli_real_escape_string($conn, $requestData['email']);
+
+        // Generate username from email
+        $baseUsername = strtolower(trim(explode('@', $requestData['email'])[0]));
+        $baseUsername = preg_replace('/[^a-z0-9_]/', '', $baseUsername);
+        if (empty($baseUsername)) {
+            $baseUsername = "employee";
+        }
+
+        $username = $baseUsername;
+        $counter = 1;
+
+        while (true) {
+            $checkUsernameQuery = "SELECT id FROM users WHERE username = '$username' LIMIT 1";
+            $checkUsernameResult = mysqli_query($conn, $checkUsernameQuery);
+
+            if ($checkUsernameResult && mysqli_num_rows($checkUsernameResult) == 0) {
+                break;
+            }
+
+            $username = $baseUsername . $counter;
+            $counter++;
+        }
+
+        // Check if email already exists in users
+        $checkEmailQuery = "SELECT id FROM users WHERE email = '$email' LIMIT 1";
+        $checkEmailResult = mysqli_query($conn, $checkEmailQuery);
+
+        if ($checkEmailResult && mysqli_num_rows($checkEmailResult) > 0) {
+            header("Location: dashboardadmin.php");
+            exit();
+        }
+
+        $insertUserQuery = "INSERT INTO users (full_name, username, email, password, role, account_status)
+                            VALUES ('$fullName', '$username', '$email', NULL, 'employee', 'pending_setup')";
+
+        if (mysqli_query($conn, $insertUserQuery)) {
+            mysqli_query($conn, "UPDATE requests SET status = 'approved' WHERE id = $requestId");
+        }
+    }
+
     header("Location: dashboardadmin.php");
     exit();
 }
-
 // REJECT REQUEST
 if (isset($_GET['reject_request'])) {
     $requestId = (int) $_GET['reject_request'];
