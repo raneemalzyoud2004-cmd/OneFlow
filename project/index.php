@@ -44,90 +44,87 @@
       body {
         font-family: "Work Sans", sans-serif;
         background: var(--oneflow-deep-navy);
+        margin: 0;
+        overflow-x: hidden;
       }
 
-    .site-nav {
-  background: rgba(11, 27, 50, 0.92);
-  padding: 14px 0;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  z-index: 9999;
-}
+      .site-nav {
+        background: rgba(11, 27, 50, 0.92);
+        padding: 14px 0;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 9999;
+        animation: navDrop 0.9s ease;
+      }
 
-.menu-bg-wrap {
-  background: rgba(255, 255, 255, 0.96);
-  border: 1px solid rgba(38, 65, 94, 0.10);
-  border-radius: 20px;
-  padding: 12px 28px;
-  box-shadow: 0 10px 30px rgba(11, 27, 50, 0.10);
-}
+      .menu-bg-wrap {
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid rgba(38, 65, 94, 0.1);
+        border-radius: 20px;
+        padding: 12px 28px;
+        box-shadow: 0 10px 30px rgba(11, 27, 50, 0.1);
+      }
 
-.site-navigation {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
+      .site-navigation {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
 
-.site-nav .logo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  text-decoration: none;
-  margin: 0;
-}
+      .site-nav .logo {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        text-decoration: none;
+        margin: 0;
+      }
 
-.site-nav .logo img {
-  height: 42px;
-  width: auto;
-  object-fit: contain;
-  background: transparent;
-  border-radius: 0;
-  box-shadow: none;
-}
+      .site-nav .logo img {
+        height: 42px;
+        width: auto;
+        object-fit: contain;
+        background: transparent;
+        border-radius: 0;
+        box-shadow: none;
+      }
 
-.site-nav .logo span {
-  color: var(--oneflow-primary);
-  font-size: 22px;
-  font-weight: 800;
-  letter-spacing: 0.2px;
-  line-height: 1;
-}
+      .site-nav .logo span {
+        color: var(--oneflow-primary);
+        font-size: 22px;
+        font-weight: 800;
+        letter-spacing: 0.2px;
+        line-height: 1;
+      }
 
-.site-nav .site-menu {
-  margin: 0;
-  padding: 0;
-}
+      .site-nav .site-menu {
+        margin: 0;
+        padding: 0;
+      }
 
-.site-nav .site-menu > li {
-  margin: 0 0 0 22px;
-}
+      .site-nav .site-menu > li {
+        margin: 0 0 0 22px;
+      }
 
-.site-nav .site-menu > li > a {
-  color: var(--oneflow-primary) !important;
-  font-weight: 700;
-  font-size: 15px;
-  transition: 0.3s ease;
-}
+      .site-nav .site-menu > li > a {
+        color: var(--oneflow-primary) !important;
+        font-weight: 700;
+        font-size: 15px;
+        transition: 0.3s ease;
+      }
 
-.site-nav .site-menu > li > a:hover {
-  color: var(--oneflow-secondary) !important;
-}
+      .site-nav .site-menu > li > a:hover {
+        color: var(--oneflow-secondary) !important;
+      }
 
-.site-nav .site-menu > li.active > a {
-  color: var(--oneflow-secondary) !important;
-}
-.site-nav .site-menu > li > a:hover {
-  color: var(--oneflow-secondary) !important;
-}
-
-.site-nav .site-menu > li.active > a {
-  color: var(--oneflow-secondary) !important;
-}
+      .site-nav .site-menu > li.active > a {
+        color: var(--oneflow-secondary) !important;
+      }
 
       .hero {
         position: relative;
+        overflow: hidden;
       }
 
       .hero .img.overlay:before {
@@ -138,11 +135,32 @@
         );
       }
 
+      .hero-slide {
+        animation: heroZoom 1.4s ease;
+      }
+
       .hero .heading {
         font-size: 58px;
         font-weight: 800;
         color: var(--oneflow-white);
         line-height: 1.2;
+        margin-bottom: 18px;
+      }
+
+      .hero-heading-line {
+        display: block;
+        opacity: 0;
+        transform: translateY(70px);
+        filter: blur(8px);
+        animation: lineReveal 1s forwards;
+      }
+
+      .hero-heading-line.line-1 {
+        animation-delay: 0.35s;
+      }
+
+      .hero-heading-line.line-2 {
+        animation-delay: 0.7s;
       }
 
       .hero-subtitle {
@@ -151,6 +169,11 @@
         max-width: 850px;
         margin: 20px auto 30px auto;
         line-height: 1.8;
+        opacity: 0;
+        transform: translateY(50px);
+        filter: blur(5px);
+        animation: subtitleReveal 1s ease forwards;
+        animation-delay: 1.05s;
       }
 
       .hero-buttons {
@@ -159,6 +182,10 @@
         gap: 14px;
         flex-wrap: wrap;
         margin-top: 10px;
+        opacity: 0;
+        transform: translateY(45px);
+        animation: buttonsReveal 0.9s ease forwards;
+        animation-delay: 1.35s;
       }
 
       .btn-oneflow-primary {
@@ -228,13 +255,14 @@
         padding: 30px;
         box-shadow: 0 10px 30px rgba(13, 30, 76, 0.08);
         height: 100%;
-        transition: 0.3s ease;
+        transition: 0.35s ease;
       }
 
       .feature-card:hover,
       .role-card:hover,
       .workflow-card:hover {
-        transform: translateY(-6px);
+        transform: translateY(-10px);
+        box-shadow: 0 18px 40px rgba(13, 30, 76, 0.14);
       }
 
       .feature-icon,
@@ -348,10 +376,78 @@
         border-color: var(--oneflow-secondary) !important;
       }
 
+      @keyframes navDrop {
+        from {
+          opacity: 0;
+          transform: translateY(-45px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes heroZoom {
+        from {
+          opacity: 0;
+          transform: scale(1.08);
+          filter: blur(10px);
+        }
+        to {
+          opacity: 1;
+          transform: scale(1);
+          filter: blur(0);
+        }
+      }
+
+      @keyframes lineReveal {
+        0% {
+          opacity: 0;
+          transform: translateY(70px);
+          filter: blur(8px);
+          letter-spacing: 1px;
+        }
+        60% {
+          opacity: 1;
+          transform: translateY(-8px);
+          filter: blur(0);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+          filter: blur(0);
+          letter-spacing: 0;
+        }
+      }
+
+      @keyframes subtitleReveal {
+        0% {
+          opacity: 0;
+          transform: translateY(50px);
+          filter: blur(5px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+          filter: blur(0);
+        }
+      }
+
+      @keyframes buttonsReveal {
+        0% {
+          opacity: 0;
+          transform: translateY(45px);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
       @media (max-width: 991px) {
-       .site-nav .logo img {
-  height: 34px;
-}
+        .site-nav .logo img {
+          height: 34px;
+        }
 
         .site-nav .logo span {
           font-size: 22px;
@@ -364,9 +460,10 @@
         .hero-subtitle {
           font-size: 16px;
         }
+
         .site-nav .site-menu > li.active > a {
-  color: var(--oneflow-secondary) !important;
-}
+          color: var(--oneflow-secondary) !important;
+        }
       }
     </style>
   </head>
@@ -386,18 +483,18 @@
         <div class="menu-bg-wrap">
           <div class="site-navigation">
             <a href="index.php" class="logo m-0 float-start">
-            <img src="images/oneflow.png" alt="OneFlow Logo" />
+              <img src="images/oneflow.png" alt="OneFlow Logo" />
               <span>OneFlow</span>
             </a>
 
             <ul
               class="js-clone-nav d-none d-lg-inline-block text-start site-menu float-end"
             >
-           <li><a href="index.php">Home</a></li>
-<li class="active"><a href="#features">Features</a></li>
-<li><a href="#roles">Roles</a></li>
-<li><a href="#workflow">Workflow</a></li>
-              <li><a href="request.php">Request </a></li>
+              <li><a href="index.php">Home</a></li>
+              <li class="active"><a href="#features">Features</a></li>
+              <li><a href="#roles">Roles</a></li>
+              <li><a href="#workflow">Workflow</a></li>
+              <li><a href="request.php">Request</a></li>
               <li><a href="login.php">Login</a></li>
             </ul>
 
@@ -433,26 +530,20 @@
       <div class="container">
         <div class="row justify-content-center align-items-center">
           <div class="col-lg-10 text-center">
-            <h1 class="heading" data-aos="fade-up">
-              Simplify HR, employee management, and daily workflows with
-              OneFlow
+            <h1 class="heading">
+              <span class="hero-heading-line line-1">Simplify HR, employee</span>
+              <span class="hero-heading-line line-2">management, and daily workflows with OneFlow</span>
             </h1>
 
-            <p class="hero-subtitle" data-aos="fade-up" data-aos-delay="100">
+            <p class="hero-subtitle">
               OneFlow helps organizations manage employees, attendance, leave
               requests, HR tasks, and admin control through one smart platform
               with role-based dashboards for Employees, HR, and Admins.
             </p>
 
-            <div
-              class="hero-buttons"
-              data-aos="fade-up"
-              data-aos-delay="200"
-            >
+            <div class="hero-buttons">
               <a href="login.php" class="btn-oneflow-primary">Login</a>
-              <a href="request.php" class="btn-oneflow-light"
-                >Request </a
-              >
+              <a href="request.php" class="btn-oneflow-light">Request</a>
             </div>
           </div>
         </div>
@@ -648,11 +739,9 @@
             login, signup, and role-based dashboards for a complete HR
             management platform.
           </p>
-          <div class="hero-buttons">
+          <div class="hero-buttons" style="opacity: 1; transform: none; animation: none;">
             <a href="login.php" class="btn-oneflow-primary">Go to Login</a>
-            <a href="request.php" class="btn-oneflow-light"
-              >Request </a
-            >
+            <a href="request.php" class="btn-oneflow-light">Request</a>
           </div>
         </div>
       </div>
@@ -688,8 +777,7 @@
               <h3>Access</h3>
               <ul class="list-unstyled links">
                 <li><a href="login.php">Login</a></li>
-        
-                <li><a href="request.php">Request </a></li>
+                <li><a href="request.php">Request</a></li>
               </ul>
             </div>
           </div>
@@ -709,7 +797,6 @@
       </div>
     </div>
 
-
     <div id="overlayer"></div>
     <div class="loader">
       <div class="spinner-border" role="status">
@@ -717,27 +804,23 @@
       </div>
     </div>
 
-    
     <script src="js/bootstrap.bundle.min.js"></script>
     <script src="js/tiny-slider.js"></script>
     <script src="js/aos.js"></script>
     <script src="js/navbar.js"></script>
     <script src="js/counter.js"></script>
     <script src="js/custom.js"></script>
-    <script src="js/custom.js"></script>
 
-<script>
-window.addEventListener("scroll", function () {
-  let navbar = document.querySelector(".site-nav");
+    <script>
+      window.addEventListener("scroll", function () {
+        let navbar = document.querySelector(".site-nav");
 
-  if (window.scrollY > 50) {
-    navbar.classList.add("scrolled");
-  } else {
-    navbar.classList.remove("scrolled");
-  }
-});
-</script>
-
-</body>
+        if (window.scrollY > 50) {
+          navbar.classList.add("scrolled");
+        } else {
+          navbar.classList.remove("scrolled");
+        }
+      });
+    </script>
   </body>
-</html> 
+</html>

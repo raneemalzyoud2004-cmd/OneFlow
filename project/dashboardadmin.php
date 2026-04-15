@@ -12,8 +12,66 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'admin') {
 }
 
 $full_name = $_SESSION['full_name'];
+$addUserMessage = "";
+$addUserType = "";
 
-// Total Employees Count
+if (isset($_GET['unblock_id'])) {
+    $unblock_id = (int) $_GET['unblock_id'];
+
+    $unblock_sql = "UPDATE users SET is_blocked = 0, failed_attempts = 0 WHERE id = ? AND role IN ('hr', 'employee')";
+    $unblock_stmt = mysqli_prepare($conn, $unblock_sql);
+
+    if ($unblock_stmt) {
+        mysqli_stmt_bind_param($unblock_stmt, "i", $unblock_id);
+        mysqli_stmt_execute($unblock_stmt);
+        mysqli_stmt_close($unblock_stmt);
+    }
+
+    header("Location: dashboardadmin.php");
+    exit();
+}
+
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_todo'])) {
+    $taskText = trim($_POST['task_text']);
+
+    if (!empty($taskText)) {
+        $stmt = mysqli_prepare($conn, "INSERT INTO admin_todos (task_text, status) VALUES (?, 'pending')");
+        if ($stmt) {
+            mysqli_stmt_bind_param($stmt, "s", $taskText);
+            mysqli_stmt_execute($stmt);
+            mysqli_stmt_close($stmt);
+        }
+    }
+
+    header("Location: dashboardadmin.php");
+    exit();
+}
+
+if (isset($_GET['toggle_todo'])) {
+    $todoId = (int) $_GET['toggle_todo'];
+
+    $checkQuery = "SELECT status FROM admin_todos WHERE id = $todoId";
+    $checkResult = mysqli_query($conn, $checkQuery);
+
+    if ($checkResult && mysqli_num_rows($checkResult) > 0) {
+        $todoRow = mysqli_fetch_assoc($checkResult);
+        $newStatus = ($todoRow['status'] === 'pending') ? 'done' : 'pending';
+
+        mysqli_query($conn, "UPDATE admin_todos SET status = '$newStatus' WHERE id = $todoId");
+    }
+
+    header("Location: dashboardadmin.php");
+    exit();
+}
+
+if (isset($_GET['delete_todo'])) {
+    $todoId = (int) $_GET['delete_todo'];
+    mysqli_query($conn, "DELETE FROM admin_todos WHERE id = $todoId");
+
+    header("Location: dashboardadmin.php");
+    exit();
+}
+
 $employeesCount = 0;
 $query = "SELECT COUNT(*) AS total FROM users";
 $result = mysqli_query($conn, $query);
@@ -22,7 +80,6 @@ if ($result && $row = mysqli_fetch_assoc($result)) {
     $employeesCount = $row['total'];
 }
 
-// Count HR users
 $hrCount = 0;
 $hrQuery = "SELECT COUNT(*) AS total FROM users WHERE role = 'hr'";
 $hrResult = mysqli_query($conn, $hrQuery);
@@ -31,7 +88,6 @@ if ($hrResult && $hrRow = mysqli_fetch_assoc($hrResult)) {
     $hrCount = $hrRow['total'];
 }
 
-// Count Admin users
 $adminCount = 0;
 $adminQuery = "SELECT COUNT(*) AS total FROM users WHERE role = 'admin'";
 $adminResult = mysqli_query($conn, $adminQuery);
@@ -40,9 +96,30 @@ if ($adminResult && $adminRow = mysqli_fetch_assoc($adminResult)) {
     $adminCount = $adminRow['total'];
 }
 
-// Get users list
+$pendingRequestsCount = 0;
+$pendingQuery = "SELECT COUNT(*) AS total FROM requests WHERE status = 'pending'";
+$pendingResult = mysqli_query($conn, $pendingQuery);
+
+if ($pendingResult && $pendingRow = mysqli_fetch_assoc($pendingResult)) {
+    $pendingRequestsCount = $pendingRow['total'];
+}
+
 $usersQuery = "SELECT id, full_name, username, role FROM users ORDER BY id DESC";
 $usersResult = mysqli_query($conn, $usersQuery);
+
+$searchUsers = [];
+$searchResult = mysqli_query($conn, "SELECT id, full_name, username FROM users");
+if ($searchResult) {
+    while ($row = mysqli_fetch_assoc($searchResult)) {
+        $searchUsers[] = $row;
+    }
+}
+
+$todosQuery = "SELECT * FROM admin_todos ORDER BY id DESC";
+$todosResult = mysqli_query($conn, $todosQuery);
+
+$blocked_sql = "SELECT id, full_name, username, role, failed_attempts FROM users WHERE is_blocked = 1 AND role IN ('hr', 'employee')";
+$blocked_result = mysqli_query($conn, $blocked_sql);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -57,7 +134,6 @@ $usersResult = mysqli_query($conn, $usersQuery);
 
   <div class="dashboard-container">
 
-    <!-- Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-top">
         <div class="logo-box">
@@ -86,10 +162,8 @@ $usersResult = mysqli_query($conn, $usersQuery);
       </div>
     </aside>
 
-    <!-- Main Content -->
     <main class="main-content">
 
-      <!-- Topbar -->
       <header class="topbar">
         <div class="topbar-left">
           <h1>Admin Dashboard</h1>
@@ -99,18 +173,192 @@ $usersResult = mysqli_query($conn, $usersQuery);
         <div class="topbar-right">
           <div class="search-box">
             <i class="fas fa-search"></i>
-            <input type="text" id="userSearch" placeholder="Search users by name, username, or role...">
+            <input type="text" id="userSearch" list="usersList" placeholder="Search users by name or username...">
+            <datalist id="usersList">
+              <?php foreach ($searchUsers as $searchUser) { ?>
+                <option value="<?php echo htmlspecialchars($searchUser['full_name']); ?>"></option>
+                <option value="<?php echo htmlspecialchars($searchUser['username']); ?>"></option>
+              <?php } ?>
+            </datalist>
           </div>
 
-          <a href="notifications.php" class="icon-btn notification-bell">
-            <i class="fas fa-bell"></i>
-            <span class="notif-count">3</span>
-          </a>
+          <div class="notification-wrapper" style="position: relative;">
+            <button
+              type="button"
+              class="icon-btn notification-bell"
+              id="notificationBellBtn"
+              style="border:none; outline:none;"
+            >
+              <i class="fas fa-bell"></i>
+              <span class="notif-count">3</span>
+            </button>
+
+            <div
+              id="notificationDropdown"
+              style="
+                display:none;
+                position:absolute;
+                top:62px;
+                right:0;
+                width:340px;
+                background:#ffffff;
+                border:1px solid #e5eef5;
+                border-radius:18px;
+                box-shadow:0 20px 45px rgba(15,23,42,0.14);
+                padding:16px;
+                z-index:9999;
+              "
+            >
+              <div
+                style="
+                  display:flex;
+                  justify-content:space-between;
+                  align-items:center;
+                  margin-bottom:14px;
+                  padding-bottom:12px;
+                  border-bottom:1px solid #edf2f7;
+                "
+              >
+                <h3 style="font-size:17px; color:#0f172a; margin:0;">Recent Notifications</h3>
+                <span
+                  style="
+                    font-size:12px;
+                    font-weight:700;
+                    color:#14b8a6;
+                    background:#ecfeff;
+                    padding:6px 10px;
+                    border-radius:999px;
+                  "
+                >
+                  3 New
+                </span>
+              </div>
+
+              <div style="display:flex; flex-direction:column; gap:12px;">
+
+                <div
+                  style="
+                    display:flex;
+                    gap:12px;
+                    align-items:flex-start;
+                    padding:12px;
+                    border-radius:16px;
+                    background:#f8fbff;
+                    border:1px solid #e8eef5;
+                  "
+                >
+                  <div
+                    style="
+                      width:42px;
+                      height:42px;
+                      border-radius:12px;
+                      display:flex;
+                      justify-content:center;
+                      align-items:center;
+                      color:white;
+                      flex-shrink:0;
+                      background:linear-gradient(135deg,#14b8a6,#06b6d4);
+                    "
+                  >
+                    <i class="fas fa-bell"></i>
+                  </div>
+                  <div>
+                    <h4 style="font-size:14px; color:#0f172a; margin:0 0 4px 0;">System is running smoothly</h4>
+                    <p style="font-size:12px; color:#64748b; margin:0; line-height:1.5;">All user records are available</p>
+                  </div>
+                </div>
+
+                <div
+                  style="
+                    display:flex;
+                    gap:12px;
+                    align-items:flex-start;
+                    padding:12px;
+                    border-radius:16px;
+                    background:#f8fbff;
+                    border:1px solid #e8eef5;
+                  "
+                >
+                  <div
+                    style="
+                      width:42px;
+                      height:42px;
+                      border-radius:12px;
+                      display:flex;
+                      justify-content:center;
+                      align-items:center;
+                      color:white;
+                      flex-shrink:0;
+                      background:linear-gradient(135deg,#22c55e,#10b981);
+                    "
+                  >
+                    <i class="fas fa-user-check"></i>
+                  </div>
+                  <div>
+                    <h4 style="font-size:14px; color:#0f172a; margin:0 0 4px 0;"><?php echo $employeesCount; ?> users in database</h4>
+                    <p style="font-size:12px; color:#64748b; margin:0; line-height:1.5;">Live count loaded successfully</p>
+                  </div>
+                </div>
+
+                <div
+                  style="
+                    display:flex;
+                    gap:12px;
+                    align-items:flex-start;
+                    padding:12px;
+                    border-radius:16px;
+                    background:#f8fbff;
+                    border:1px solid #e8eef5;
+                  "
+                >
+                  <div
+                    style="
+                      width:42px;
+                      height:42px;
+                      border-radius:12px;
+                      display:flex;
+                      justify-content:center;
+                      align-items:center;
+                      color:white;
+                      flex-shrink:0;
+                      background:linear-gradient(135deg,#ef4444,#f97316);
+                    "
+                  >
+                    <i class="fas fa-triangle-exclamation"></i>
+                  </div>
+                  <div>
+                    <h4 style="font-size:14px; color:#0f172a; margin:0 0 4px 0;">Remember to review roles</h4>
+                    <p style="font-size:12px; color:#64748b; margin:0; line-height:1.5;">Check admin and HR access levels</p>
+                  </div>
+                </div>
+
+              </div>
+
+              <div style="margin-top:14px; padding-top:12px; border-top:1px solid #edf2f7;">
+                <a
+                  href="notifications.php"
+                  style="
+                    display:block;
+                    width:100%;
+                    text-align:center;
+                    background:linear-gradient(90deg,#0ea5a4,#14b8a6);
+                    color:white;
+                    padding:12px 14px;
+                    border-radius:14px;
+                    font-weight:700;
+                    text-decoration:none;
+                  "
+                >
+                  View All Notifications
+                </a>
+              </div>
+            </div>
+          </div>
 
           <div class="admin-profile">
             <div class="admin-avatar">A</div>
             <div>
-              <h4><?php echo $full_name; ?></h4>
+              <h4><?php echo htmlspecialchars($full_name); ?></h4>
               <span>Super Admin</span>
             </div>
           </div>
@@ -119,19 +367,18 @@ $usersResult = mysqli_query($conn, $usersQuery);
         </div>
       </header>
 
-      <!-- Hero Banner -->
       <section class="hero-banner">
         <div class="hero-text">
-          <h2>Welcome back, <?php echo $full_name; ?> 👋</h2>
+          <h2>Welcome back, <?php echo htmlspecialchars($full_name); ?> 👋</h2>
           <p>You currently have <strong><?php echo $employeesCount; ?> total users</strong> registered in the system.</p>
         </div>
         <div class="hero-actions">
-          <a href="manageusers.php" class="hero-btn primary-btn"><i class="fas fa-user-plus"></i> Add New User</a>
-          <a href="analytics.php" class="hero-btn secondary-btn"><i class="fas fa-file-export"></i> Export Report</a>
+          <a href="export_report.php" class="hero-btn secondary-btn">
+            <i class="fas fa-file-export"></i> Export Report
+          </a>
         </div>
       </section>
 
-      <!-- Stats -->
       <section class="cards">
         <div class="card">
           <div class="card-icon"><i class="fas fa-users"></i></div>
@@ -163,31 +410,27 @@ $usersResult = mysqli_query($conn, $usersQuery);
         <div class="card">
           <div class="card-icon"><i class="fas fa-chart-pie"></i></div>
           <div class="card-info">
-            <h3><?php echo $employeesCount; ?></h3>
+            <h3><?php echo $pendingRequestsCount; ?></h3>
             <p>Pending Requests</p>
-            <span>Users stored in database</span>
+            <span>Live count from requests table</span>
           </div>
         </div>
       </section>
 
-      <!-- Dashboard Grid -->
       <section class="dashboard-grid">
-
-        <!-- Left Column -->
         <div class="left-column">
 
-          <!-- Quick Actions -->
           <div class="panel">
             <div class="panel-header">
               <h2>Quick Actions</h2>
             </div>
 
             <div class="quick-actions">
-              <a href="manageusers.php" class="quick-card">
+              <button type="button" class="quick-card quick-card-btn" onclick="openAddUserPopup()">
                 <i class="fas fa-user-plus"></i>
                 <h4>Add Employee</h4>
                 <p>Create a new employee account</p>
-              </a>
+              </button>
 
               <a href="settingsadmin.php" class="quick-card">
                 <i class="fas fa-user-shield"></i>
@@ -209,7 +452,6 @@ $usersResult = mysqli_query($conn, $usersQuery);
             </div>
           </div>
 
-          <!-- Recent Users -->
           <div class="panel">
             <div class="panel-header">
               <h2>Recent Users</h2>
@@ -241,8 +483,9 @@ $usersResult = mysqli_query($conn, $usersQuery);
                           <?php if ($user['role'] == 'employee') { ?>
                             <button type="button" class="action-btn approve">Approve</button>
                             <button type="button" class="action-btn reject">Reject</button>
+                            <a href="employeeinfo.php?id=<?php echo $user['id']; ?>" class="action-btn view">View</a>
                           <?php } else { ?>
-                            <button type="button" class="action-btn view">View</button>
+                            <a href="employeeinfo.php?id=<?php echo $user['id']; ?>" class="action-btn view">View</a>
                           <?php } ?>
                         </td>
                       </tr>
@@ -255,43 +498,93 @@ $usersResult = mysqli_query($conn, $usersQuery);
 
         </div>
 
-        <!-- Right Column -->
         <div class="right-column">
 
-          <!-- Notifications -->
           <div class="panel">
             <div class="panel-header">
-              <h2>Notifications</h2>
+              <h2>Admin To-Do List</h2>
             </div>
 
-            <div class="notification-list">
-              <div class="notification-item">
-                <div class="notif-icon teal"><i class="fas fa-bell"></i></div>
-                <div>
-                  <h4>System is running smoothly</h4>
-                  <p>All user records are available</p>
-                </div>
-              </div>
+            <form method="POST" class="todo-form">
+              <input type="text" name="task_text" placeholder="Write a new admin task..." required>
+              <button type="submit" name="add_todo">Add</button>
+            </form>
 
-              <div class="notification-item">
-                <div class="notif-icon green"><i class="fas fa-user-check"></i></div>
-                <div>
-                  <h4><?php echo $employeesCount; ?> users in database</h4>
-                  <p>Live count loaded successfully</p>
-                </div>
-              </div>
+            <div class="todo-db-list">
+              <?php if ($todosResult && mysqli_num_rows($todosResult) > 0) { ?>
+                <?php while ($todo = mysqli_fetch_assoc($todosResult)) { ?>
+                  <div class="todo-db-item <?php echo $todo['status']; ?>">
+                    <div class="todo-db-left">
+                      <a href="dashboardadmin.php?toggle_todo=<?php echo $todo['id']; ?>" class="todo-check-btn">
+                        <?php if ($todo['status'] === 'done') { ?>
+                          <i class="fas fa-circle-check"></i>
+                        <?php } else { ?>
+                          <i class="far fa-circle"></i>
+                        <?php } ?>
+                      </a>
 
-              <div class="notification-item">
-                <div class="notif-icon red"><i class="fas fa-triangle-exclamation"></i></div>
-                <div>
-                  <h4>Remember to review roles</h4>
-                  <p>Check admin and HR access levels</p>
-                </div>
-              </div>
+                      <div class="todo-db-text">
+                        <h4 class="<?php echo $todo['status'] === 'done' ? 'completed-text' : ''; ?>">
+                          <?php echo htmlspecialchars($todo['task_text']); ?>
+                        </h4>
+                        <span class="todo-badge <?php echo $todo['status']; ?>">
+                          <?php echo ucfirst($todo['status']); ?>
+                        </span>
+                      </div>
+                    </div>
+
+                    <a href="dashboardadmin.php?delete_todo=<?php echo $todo['id']; ?>" class="todo-delete-btn" onclick="return confirm('Delete this task?');">
+                      <i class="fas fa-trash"></i>
+                    </a>
+                  </div>
+                <?php } ?>
+              <?php } else { ?>
+                <p class="empty-todo-text">No tasks yet. Add your first task.</p>
+              <?php } ?>
             </div>
           </div>
 
-          <!-- Recent Activity -->
+          <div class="panel">
+            <div class="panel-header">
+              <h2>Blocked Accounts</h2>
+            </div>
+
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Username</th>
+                    <th>Role</th>
+                    <th>Failed Attempts</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <?php if ($blocked_result && mysqli_num_rows($blocked_result) > 0) { ?>
+                    <?php while ($blocked_user = mysqli_fetch_assoc($blocked_result)) { ?>
+                      <tr>
+                        <td><?php echo htmlspecialchars($blocked_user['full_name']); ?></td>
+                        <td><?php echo htmlspecialchars($blocked_user['username']); ?></td>
+                        <td><?php echo htmlspecialchars($blocked_user['role']); ?></td>
+                        <td><?php echo htmlspecialchars($blocked_user['failed_attempts']); ?></td>
+                        <td>
+                          <a href="dashboardadmin.php?unblock_id=<?php echo $blocked_user['id']; ?>" class="action-btn approve">
+                            Unblock
+                          </a>
+                        </td>
+                      </tr>
+                    <?php } ?>
+                  <?php } else { ?>
+                    <tr>
+                      <td colspan="5">No blocked accounts found.</td>
+                    </tr>
+                  <?php } ?>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
           <div class="panel">
             <div class="panel-header">
               <h2>Recent Activity</h2>
@@ -302,7 +595,7 @@ $usersResult = mysqli_query($conn, $usersQuery);
                 <span class="dot teal-dot"></span>
                 <div>
                   <h4>Admin logged in successfully</h4>
-                  <p>Session started for <?php echo $full_name; ?></p>
+                  <p>Session started for <?php echo htmlspecialchars($full_name); ?></p>
                 </div>
               </div>
 
@@ -318,7 +611,7 @@ $usersResult = mysqli_query($conn, $usersQuery);
                 <span class="dot orange-dot"></span>
                 <div>
                   <h4>Search feature active</h4>
-                  <p>Filter users by name, username, or role</p>
+                  <p>Filter users by name or username</p>
                 </div>
               </div>
 
@@ -332,7 +625,6 @@ $usersResult = mysqli_query($conn, $usersQuery);
             </div>
           </div>
 
-          <!-- Overview -->
           <div class="panel">
             <div class="panel-header">
               <h2>System Overview</h2>
@@ -368,12 +660,72 @@ $usersResult = mysqli_query($conn, $usersQuery);
     </main>
   </div>
 
-  <!-- Popup Message -->
+  <div class="modal-overlay" id="addUserModal" style="display: none;">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div>
+          <h2>Add New User</h2>
+          <p>Create a new account directly from the dashboard.</p>
+        </div>
+        <button type="button" class="close-modal-btn" onclick="closeAddUserPopup()">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+
+      <form method="POST" class="add-user-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Full Name</label>
+            <input type="text" name="full_name" placeholder="Enter full name">
+          </div>
+
+          <div class="form-group">
+            <label>Username</label>
+            <input type="text" name="username" placeholder="Enter username">
+          </div>
+
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" name="email" placeholder="Enter email address">
+          </div>
+
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" name="password" placeholder="Enter password">
+          </div>
+
+          <div class="form-group full-width">
+            <label>Role</label>
+            <select name="role">
+              <option value="">Select role</option>
+              <option value="admin">Admin</option>
+              <option value="hr">HR</option>
+              <option value="employee">Employee</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="cancel-btn" onclick="closeAddUserPopup()">Cancel</button>
+          <button type="submit" name="add_user" class="save-user-btn">
+            <i class="fas fa-user-plus"></i> Add User
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <div id="actionPopup" class="action-popup"></div>
 
   <script>
+    const searchUsers = <?php echo json_encode($searchUsers); ?>;
+    const addUserMessage = <?php echo json_encode($addUserMessage); ?>;
+    const addUserType = <?php echo json_encode($addUserType); ?>;
+
     function showPopup(message, type) {
       const popup = document.getElementById("actionPopup");
+      if (!popup) return;
+
       popup.textContent = message;
       popup.className = "action-popup show " + type;
 
@@ -382,12 +734,31 @@ $usersResult = mysqli_query($conn, $usersQuery);
       }, 2500);
     }
 
+    function openAddUserPopup() {
+      const modal = document.getElementById("addUserModal");
+      if (!modal) return;
+
+      modal.style.display = "flex";
+      modal.classList.add("show");
+      document.body.classList.add("modal-open");
+    }
+
+    function closeAddUserPopup() {
+      const modal = document.getElementById("addUserModal");
+      if (!modal) return;
+
+      modal.classList.remove("show");
+      modal.style.display = "none";
+      document.body.classList.remove("modal-open");
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
       const approveButtons = document.querySelectorAll(".action-btn.approve");
       const rejectButtons = document.querySelectorAll(".action-btn.reject");
-      const viewButtons = document.querySelectorAll(".action-btn.view");
-      const searchInput = document.getElementById("userSearch");
-      const tableRows = document.querySelectorAll("#usersTable tbody tr");
+      const userSearch = document.getElementById("userSearch");
+      const addUserModal = document.getElementById("addUserModal");
+      const notificationBellBtn = document.getElementById("notificationBellBtn");
+      const notificationDropdown = document.getElementById("notificationDropdown");
 
       approveButtons.forEach(function(button) {
         button.addEventListener("click", function () {
@@ -401,32 +772,73 @@ $usersResult = mysqli_query($conn, $usersQuery);
         button.addEventListener("click", function () {
           const row = this.closest("tr");
           const name = row.querySelector("td").textContent;
-          showPopup(name + " is rejected.", "error");
+          showPopup(name + " rejected.", "error");
         });
       });
 
-      viewButtons.forEach(function(button) {
-        button.addEventListener("click", function () {
-          const row = this.closest("tr");
-          const name = row.querySelector("td").textContent;
-          showPopup("Viewing profile for " + name + ".", "info");
-        });
-      });
+      if (userSearch) {
+        userSearch.addEventListener("keydown", function(e) {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            const searchValue = this.value.trim().toLowerCase();
 
-      if (searchInput) {
-        searchInput.addEventListener("keyup", function () {
-          const searchValue = this.value.toLowerCase();
+            const matchedUser = searchUsers.find(function(user) {
+              return user.full_name.toLowerCase() === searchValue || user.username.toLowerCase() === searchValue;
+            });
 
-          tableRows.forEach(function(row) {
-            const rowText = row.textContent.toLowerCase();
-
-            if (rowText.includes(searchValue)) {
-              row.style.display = "";
+            if (matchedUser) {
+              window.location.href = "employeeinfo.php?id=" + matchedUser.id;
             } else {
-              row.style.display = "none";
+              showPopup("User not found.", "error");
             }
-          });
+          }
         });
+      }
+
+      if (notificationBellBtn && notificationDropdown) {
+        notificationBellBtn.addEventListener("click", function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+
+          if (notificationDropdown.style.display === "block") {
+            notificationDropdown.style.display = "none";
+          } else {
+            notificationDropdown.style.display = "block";
+          }
+        });
+
+        notificationDropdown.addEventListener("click", function(e) {
+          e.stopPropagation();
+        });
+
+        document.addEventListener("click", function() {
+          notificationDropdown.style.display = "none";
+        });
+      }
+
+      if (addUserModal) {
+        addUserModal.addEventListener("click", function(e) {
+          if (e.target === addUserModal) {
+            closeAddUserPopup();
+          }
+        });
+      }
+
+      document.addEventListener("keydown", function(e) {
+        if (e.key === "Escape") {
+          closeAddUserPopup();
+          if (notificationDropdown) {
+            notificationDropdown.style.display = "none";
+          }
+        }
+      });
+
+      if (addUserMessage) {
+        showPopup(addUserMessage, addUserType);
+
+        if (addUserType === "error") {
+          openAddUserPopup();
+        }
       }
     });
   </script>
