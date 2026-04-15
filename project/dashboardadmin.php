@@ -15,6 +15,55 @@ $full_name = $_SESSION['full_name'];
 $addUserMessage = "";
 $addUserType = "";
 
+// HYBRID ADD EMPLOYEE
+if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_user'])) {
+    $employee_full_name = trim($_POST['full_name']);
+    $employee_username = trim($_POST['username']);
+
+    if (empty($employee_full_name) || empty($employee_username)) {
+        $addUserMessage = "Please fill in all required fields.";
+        $addUserType = "error";
+    } else {
+        $employee_full_name = mysqli_real_escape_string($conn, $employee_full_name);
+        $employee_username = mysqli_real_escape_string($conn, $employee_username);
+
+        $checkUserSql = "SELECT id FROM users WHERE username = '$employee_username' LIMIT 1";
+        $checkUserResult = mysqli_query($conn, $checkUserSql);
+
+        if ($checkUserResult && mysqli_num_rows($checkUserResult) > 0) {
+            $addUserMessage = "This username already exists. Please choose another one.";
+            $addUserType = "error";
+        } else {
+            $insertSql = "INSERT INTO users (full_name, username, email, password, role, account_status)
+                          VALUES ('$employee_full_name', '$employee_username', NULL, NULL, 'employee', 'pending_setup')";
+
+            if (mysqli_query($conn, $insertSql)) {
+                $addUserMessage = "Employee added successfully. Ask them to complete setup from setup_account.php";
+                $addUserType = "success";
+            } else {
+                $addUserMessage = "Error adding employee: " . mysqli_error($conn);
+                $addUserType = "error";
+            }
+        }
+    }
+}
+
+// APPROVE REQUEST
+if (isset($_GET['approve_request'])) {
+    $requestId = (int) $_GET['approve_request'];
+    mysqli_query($conn, "UPDATE requests SET status = 'approved' WHERE id = $requestId");
+    header("Location: dashboardadmin.php");
+    exit();
+}
+
+// REJECT REQUEST
+if (isset($_GET['reject_request'])) {
+    $requestId = (int) $_GET['reject_request'];
+    mysqli_query($conn, "UPDATE requests SET status = 'rejected' WHERE id = $requestId");
+    header("Location: dashboardadmin.php");
+    exit();
+}
+
 if (isset($_GET['unblock_id'])) {
     $unblock_id = (int) $_GET['unblock_id'];
 
@@ -114,6 +163,10 @@ if ($searchResult) {
         $searchUsers[] = $row;
     }
 }
+
+// REQUESTS LIST
+$requestsQuery = "SELECT * FROM requests ORDER BY id DESC";
+$requestsResult = mysqli_query($conn, $requestsQuery);
 
 $todosQuery = "SELECT * FROM admin_todos ORDER BY id DESC";
 $todosResult = mysqli_query($conn, $todosQuery);
@@ -454,42 +507,47 @@ $blocked_result = mysqli_query($conn, $blocked_sql);
 
           <div class="panel">
             <div class="panel-header">
-              <h2>Recent Users</h2>
-              <a href="manageusers.php">View All</a>
+              <h2>Recent Requests</h2>
+              <a href="requestsadmin.php">View All</a>
             </div>
 
             <div class="table-wrapper">
-              <table id="usersTable">
+              <table id="requestsTable">
                 <thead>
                   <tr>
                     <th>Full Name</th>
-                    <th>Username</th>
-                    <th>Role</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Status</th>
                     <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <?php if ($usersResult && mysqli_num_rows($usersResult) > 0) { ?>
-                    <?php while ($user = mysqli_fetch_assoc($usersResult)) { ?>
+                  <?php if ($requestsResult && mysqli_num_rows($requestsResult) > 0) { ?>
+                    <?php while ($request = mysqli_fetch_assoc($requestsResult)) { ?>
                       <tr>
-                        <td><?php echo htmlspecialchars($user['full_name']); ?></td>
-                        <td><?php echo htmlspecialchars($user['username']); ?></td>
+                        <td><?php echo htmlspecialchars($request['full_name']); ?></td>
+                        <td><?php echo htmlspecialchars($request['email']); ?></td>
+                        <td><?php echo htmlspecialchars($request['phone']); ?></td>
                         <td>
-                          <span class="status <?php echo strtolower($user['role']); ?>">
-                            <?php echo ucfirst($user['role']); ?>
+                          <span class="status <?php echo strtolower($request['status']); ?>">
+                            <?php echo ucfirst($request['status']); ?>
                           </span>
                         </td>
                         <td>
-                          <?php if ($user['role'] == 'employee') { ?>
-                            <button type="button" class="action-btn approve">Approve</button>
-                            <button type="button" class="action-btn reject">Reject</button>
-                            <a href="employeeinfo.php?id=<?php echo $user['id']; ?>" class="action-btn view">View</a>
+                          <?php if ($request['status'] === 'pending') { ?>
+                            <a href="dashboardadmin.php?approve_request=<?php echo $request['id']; ?>" class="action-btn approve">Approve</a>
+                            <a href="dashboardadmin.php?reject_request=<?php echo $request['id']; ?>" class="action-btn reject">Reject</a>
                           <?php } else { ?>
-                            <a href="employeeinfo.php?id=<?php echo $user['id']; ?>" class="action-btn view">View</a>
+                            <span style="color:#64748b; font-weight:600;">Reviewed</span>
                           <?php } ?>
                         </td>
                       </tr>
                     <?php } ?>
+                  <?php } else { ?>
+                    <tr>
+                      <td colspan="5">No requests found.</td>
+                    </tr>
                   <?php } ?>
                 </tbody>
               </table>
@@ -664,8 +722,8 @@ $blocked_result = mysqli_query($conn, $blocked_sql);
     <div class="modal-box">
       <div class="modal-header">
         <div>
-          <h2>Add New User</h2>
-          <p>Create a new account directly from the dashboard.</p>
+          <h2>Add New Employee</h2>
+          <p>Create the employee record first, then they will complete account setup later.</p>
         </div>
         <button type="button" class="close-modal-btn" onclick="closeAddUserPopup()">
           <i class="fas fa-times"></i>
@@ -676,39 +734,25 @@ $blocked_result = mysqli_query($conn, $blocked_sql);
         <div class="form-grid">
           <div class="form-group">
             <label>Full Name</label>
-            <input type="text" name="full_name" placeholder="Enter full name">
+            <input type="text" name="full_name" placeholder="Enter full name" required>
           </div>
 
           <div class="form-group">
             <label>Username</label>
-            <input type="text" name="username" placeholder="Enter username">
-          </div>
-
-          <div class="form-group">
-            <label>Email</label>
-            <input type="email" name="email" placeholder="Enter email address">
-          </div>
-
-          <div class="form-group">
-            <label>Password</label>
-            <input type="password" name="password" placeholder="Enter password">
+            <input type="text" name="username" placeholder="Enter username" required>
           </div>
 
           <div class="form-group full-width">
-            <label>Role</label>
-            <select name="role">
-              <option value="">Select role</option>
-              <option value="admin">Admin</option>
-              <option value="hr">HR</option>
-              <option value="employee">Employee</option>
-            </select>
+            <div style="padding: 14px 16px; background: #f8fbff; border: 1px solid #dbe7f0; border-radius: 14px; color: #475569; font-size: 14px; line-height: 1.7;">
+              The employee will set their own email and password later in the account setup page.
+            </div>
           </div>
         </div>
 
         <div class="modal-actions">
           <button type="button" class="cancel-btn" onclick="closeAddUserPopup()">Cancel</button>
           <button type="submit" name="add_user" class="save-user-btn">
-            <i class="fas fa-user-plus"></i> Add User
+            <i class="fas fa-user-plus"></i> Add Employee
           </button>
         </div>
       </form>
@@ -753,28 +797,10 @@ $blocked_result = mysqli_query($conn, $blocked_sql);
     }
 
     document.addEventListener("DOMContentLoaded", function () {
-      const approveButtons = document.querySelectorAll(".action-btn.approve");
-      const rejectButtons = document.querySelectorAll(".action-btn.reject");
       const userSearch = document.getElementById("userSearch");
       const addUserModal = document.getElementById("addUserModal");
       const notificationBellBtn = document.getElementById("notificationBellBtn");
       const notificationDropdown = document.getElementById("notificationDropdown");
-
-      approveButtons.forEach(function(button) {
-        button.addEventListener("click", function () {
-          const row = this.closest("tr");
-          const name = row.querySelector("td").textContent;
-          showPopup(name + " approved successfully.", "success");
-        });
-      });
-
-      rejectButtons.forEach(function(button) {
-        button.addEventListener("click", function () {
-          const row = this.closest("tr");
-          const name = row.querySelector("td").textContent;
-          showPopup(name + " rejected.", "error");
-        });
-      });
 
       if (userSearch) {
         userSearch.addEventListener("keydown", function(e) {
