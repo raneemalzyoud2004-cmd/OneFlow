@@ -14,6 +14,9 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
     } elseif ($_SESSION['role'] === 'employee') {
         header("Location: dashboardemployee.php");
         exit();
+    } elseif ($_SESSION['role'] === 'teamleader') {
+        header("Location: dashboardteamleader.php");
+        exit();
     }
 }
 
@@ -58,6 +61,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             exit();
                         } elseif ($row['role'] === 'employee') {
                             header("Location: dashboardemployee.php");
+                            exit();
+                        } elseif ($row['role'] === 'teamleader') {
+                            header("Location: dashboardteamleader.php");
                             exit();
                         } else {
                             $error = "Invalid user role.";

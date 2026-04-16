@@ -5,14 +5,13 @@ header("Cache-Control: no-cache, no-store, must-revalidate");
 header("Pragma: no-cache");
 header("Expires: 0");
 
-/*
 if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'teamleader') {
     header("Location: login.php");
     exit();
 }
-*/
 
-$full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Leader';
+$full_name = $_SESSION['full_name'] ?? 'Team Leader';
+$first_letter = strtoupper(substr(trim($full_name), 0, 1));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -78,10 +77,9 @@ $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Lead
           <span class="notif-count">4</span>
         </div>
 
-        <!-- Profile -->
         <div class="admin-profile">
           <div class="admin-avatar">
-            <?php echo strtoupper(substr($full_name, 0, 1)); ?>
+            <?php echo htmlspecialchars($first_letter); ?>
           </div>
           <div>
             <h4><?php echo htmlspecialchars($full_name); ?></h4>
@@ -89,7 +87,6 @@ $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Lead
           </div>
         </div>
 
-        <!-- Logout -->
         <a href="logout.php" class="logout-btn">Logout</a>
 
       </div>

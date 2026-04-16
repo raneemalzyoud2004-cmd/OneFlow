@@ -1,5 +1,6 @@
-
 <?php
+include("config.php");
+
 $success = "";
 $error = "";
 
@@ -15,12 +16,32 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     if (empty($name) || empty($email) || !preg_match("/^07[0-9]{8}$/", $phone)) {
         $error = "Please fill all fields correctly!";
     } else {
-        $success = "Request sent successfully!";
+        $name_safe = mysqli_real_escape_string($conn, $name);
+        $email_safe = mysqli_real_escape_string($conn, $email);
+        $phone_safe = mysqli_real_escape_string($conn, $phone);
 
-        // تصفير الداتا بعد النجاح
-        $name = "";
-        $email = "";
-        $phone = "";
+        $checkRequestQuery = "SELECT id FROM requests 
+                              WHERE email = '$email_safe' AND status = 'pending' 
+                              LIMIT 1";
+        $checkRequestResult = mysqli_query($conn, $checkRequestQuery);
+
+        if ($checkRequestResult && mysqli_num_rows($checkRequestResult) > 0) {
+            $error = "You already have a pending request!";
+        } else {
+            $insertQuery = "INSERT INTO requests (full_name, email, phone, status)
+                            VALUES ('$name_safe', '$email_safe', '$phone_safe', 'pending')";
+
+            if (mysqli_query($conn, $insertQuery)) {
+                $success = "Request sent successfully!";
+
+                // تصفير الداتا بعد النجاح
+                $name = "";
+                $email = "";
+                $phone = "";
+            } else {
+                $error = "Something went wrong while sending the request!";
+            }
+        }
     }
 }
 ?>
