@@ -150,7 +150,7 @@ if ($stmt) {
         <li><a href="dashboardadmin.php"><i class="fas fa-house"></i> Dashboard</a></li>
         <li><a href="manageusers.php"><i class="fas fa-users"></i> Manage Users</a></li>
         <li class="active"><a href="hrteam.php"><i class="fas fa-user-tie"></i> HR Team</a></li>
-        <li><a href="requestsadmin.php"><i class="fas fa-file-circle-check"></i> Access Requests Overview</a></li>
+        <li><a href="systemlogs.php"><i class="fas fa-file-circle-check"></i>System Logs</a></li>
         <li><a href="analytics.php"><i class="fas fa-chart-line"></i> Analytics</a></li>
         <li><a href="notifications.php"><i class="fas fa-bell"></i> Notifications</a></li>
         <li><a href="securitycenter.php"><i class="fas fa-shield-halved"></i> Security Center</a></li>

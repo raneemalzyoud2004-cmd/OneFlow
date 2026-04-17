@@ -208,7 +208,7 @@ $blocked_result = mysqli_query($conn, $blocked_sql);
         <li class="active"><a href="dashboardadmin.php"><i class="fas fa-house"></i> Dashboard</a></li>
         <li><a href="manageusers.php"><i class="fas fa-users"></i> Manage Users</a></li>
         <li><a href="hrteam.php"><i class="fas fa-user-tie"></i> HR Team</a></li>
-        <li><a href="requestsadmin.php"><i class="fas fa-file-circle-check"></i> Access Requests Overview</a></li>
+        <li><a href="systemlogs.php"><i class="fas fa-file-circle-check"></i> System Logs</a></li>
         <li><a href="analytics.php"><i class="fas fa-chart-line"></i> Analytics</a></li>
         <li><a href="notifications.php"><i class="fas fa-bell"></i> Notifications</a></li>
         <li><a href="settingsadmin.php"><i class="fas fa-gear"></i> Settings</a></li>
@@ -487,7 +487,7 @@ $blocked_result = mysqli_query($conn, $blocked_sql);
             </div>
 
             <div class="quick-actions">
-              <a href="settingsadmin.php" class="quick-card">
+              <a href="manageusers.php" class="quick-card">
                 <i class="fas fa-user-shield"></i>
                 <h4>Manage Permissions</h4>
                 <p>Control roles and access permissions</p>
@@ -505,18 +505,14 @@ $blocked_result = mysqli_query($conn, $blocked_sql);
                 <p>Browse all users in the system</p>
               </a>
 
-              <a href="export_report.php" class="quick-card">
-                <i class="fas fa-chart-column"></i>
-                <h4>Generate Report</h4>
-                <p>View and export system insights</p>
-              </a>
+              
             </div>
           </div>
 
           <div class="panel">
             <div class="panel-header">
               <h2>Recent Requests</h2>
-              <a href="requestsadmin.php">View All</a>
+              <a href="systemlogs.php">View All</a>
             </div>
 
             <div class="table-wrapper">
