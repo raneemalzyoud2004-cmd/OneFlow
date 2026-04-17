@@ -12,41 +12,6 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'admin') {
 }
 
 $full_name = $_SESSION['full_name'];
-$addUserMessage = "";
-$addUserType = "";
-
-// HYBRID ADD EMPLOYEE
-if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['add_user'])) {
-    $employee_full_name = trim($_POST['full_name']);
-    $employee_username = trim($_POST['username']);
-
-    if (empty($employee_full_name) || empty($employee_username)) {
-        $addUserMessage = "Please fill in all required fields.";
-        $addUserType = "error";
-    } else {
-        $employee_full_name = mysqli_real_escape_string($conn, $employee_full_name);
-        $employee_username = mysqli_real_escape_string($conn, $employee_username);
-
-        $checkUserSql = "SELECT id FROM users WHERE username = '$employee_username' LIMIT 1";
-        $checkUserResult = mysqli_query($conn, $checkUserSql);
-
-        if ($checkUserResult && mysqli_num_rows($checkUserResult) > 0) {
-            $addUserMessage = "This username already exists. Please choose another one.";
-            $addUserType = "error";
-        } else {
-            $insertSql = "INSERT INTO users (full_name, username, email, password, role, account_status)
-                          VALUES ('$employee_full_name', '$employee_username', NULL, NULL, 'employee', 'pending_setup')";
-
-            if (mysqli_query($conn, $insertSql)) {
-                $addUserMessage = "Employee added successfully. Ask them to complete setup from setup_account.php";
-                $addUserType = "success";
-            } else {
-                $addUserMessage = "Error adding employee: " . mysqli_error($conn);
-                $addUserType = "error";
-            }
-        }
-    }
-}
 
 if (isset($_GET['approve_request'])) {
     $requestId = (int) $_GET['approve_request'];
@@ -60,7 +25,6 @@ if (isset($_GET['approve_request'])) {
         $fullName = mysqli_real_escape_string($conn, $requestData['full_name']);
         $email = mysqli_real_escape_string($conn, $requestData['email']);
 
-        // Generate username from email
         $baseUsername = strtolower(trim(explode('@', $requestData['email'])[0]));
         $baseUsername = preg_replace('/[^a-z0-9_]/', '', $baseUsername);
         if (empty($baseUsername)) {
@@ -82,7 +46,6 @@ if (isset($_GET['approve_request'])) {
             $counter++;
         }
 
-        // Check if email already exists in users
         $checkEmailQuery = "SELECT id FROM users WHERE email = '$email' LIMIT 1";
         $checkEmailResult = mysqli_query($conn, $checkEmailQuery);
 
@@ -102,7 +65,7 @@ if (isset($_GET['approve_request'])) {
     header("Location: dashboardadmin.php");
     exit();
 }
-// REJECT REQUEST
+
 if (isset($_GET['reject_request'])) {
     $requestId = (int) $_GET['reject_request'];
     mysqli_query($conn, "UPDATE requests SET status = 'rejected' WHERE id = $requestId");
@@ -210,7 +173,6 @@ if ($searchResult) {
     }
 }
 
-// REQUESTS LIST
 $requestsQuery = "SELECT * FROM requests ORDER BY id DESC";
 $requestsResult = mysqli_query($conn, $requestsQuery);
 
@@ -246,7 +208,7 @@ $blocked_result = mysqli_query($conn, $blocked_sql);
         <li class="active"><a href="dashboardadmin.php"><i class="fas fa-house"></i> Dashboard</a></li>
         <li><a href="manageusers.php"><i class="fas fa-users"></i> Manage Users</a></li>
         <li><a href="hrteam.php"><i class="fas fa-user-tie"></i> HR Team</a></li>
-        <li><a href="requestsadmin.php"><i class="fas fa-file-circle-check"></i> Requests</a></li>
+        <li><a href="requestsadmin.php"><i class="fas fa-file-circle-check"></i> Access Requests Overview</a></li>
         <li><a href="analytics.php"><i class="fas fa-chart-line"></i> Analytics</a></li>
         <li><a href="notifications.php"><i class="fas fa-bell"></i> Notifications</a></li>
         <li><a href="settingsadmin.php"><i class="fas fa-gear"></i> Settings</a></li>
@@ -525,16 +487,16 @@ $blocked_result = mysqli_query($conn, $blocked_sql);
             </div>
 
             <div class="quick-actions">
-              <button type="button" class="quick-card quick-card-btn" onclick="openAddUserPopup()">
-                <i class="fas fa-user-plus"></i>
-                <h4>Add Employee</h4>
-                <p>Create a new employee account</p>
-              </button>
-
               <a href="settingsadmin.php" class="quick-card">
                 <i class="fas fa-user-shield"></i>
-                <h4>Manage Roles</h4>
-                <p>Control admin and HR access</p>
+                <h4>Manage Permissions</h4>
+                <p>Control roles and access permissions</p>
+              </a>
+
+              <a href="securitycenter.php" class="quick-card">
+                <i class="fas fa-shield-halved"></i>
+                <h4>Security Center</h4>
+                <p>Monitor blocked accounts and security status</p>
               </a>
 
               <a href="manageusers.php" class="quick-card">
@@ -543,7 +505,7 @@ $blocked_result = mysqli_query($conn, $blocked_sql);
                 <p>Browse all users in the system</p>
               </a>
 
-              <a href="analytics.php" class="quick-card">
+              <a href="export_report.php" class="quick-card">
                 <i class="fas fa-chart-column"></i>
                 <h4>Generate Report</h4>
                 <p>View and export system insights</p>
@@ -729,88 +691,16 @@ $blocked_result = mysqli_query($conn, $blocked_sql);
             </div>
           </div>
 
-          <div class="panel">
-            <div class="panel-header">
-              <h2>System Overview</h2>
-            </div>
-
-            <div class="overview-box">
-              <div class="overview-row">
-                <span>Total Users</span>
-                <strong><?php echo $employeesCount; ?></strong>
-              </div>
-              <div class="overview-row">
-                <span>HR Members</span>
-                <strong><?php echo $hrCount; ?></strong>
-              </div>
-              <div class="overview-row">
-                <span>Admins</span>
-                <strong><?php echo $adminCount; ?></strong>
-              </div>
-              <div class="overview-row">
-                <span>Logged In Admin</span>
-                <strong><?php echo htmlspecialchars($full_name); ?></strong>
-              </div>
-              <div class="overview-row">
-                <span>Status</span>
-                <strong>Online</strong>
-              </div>
-            </div>
-          </div>
-
-        </div>
+          
       </section>
 
     </main>
-  </div>
-
-  <div class="modal-overlay" id="addUserModal" style="display: none;">
-    <div class="modal-box">
-      <div class="modal-header">
-        <div>
-          <h2>Add New Employee</h2>
-          <p>Create the employee record first, then they will complete account setup later.</p>
-        </div>
-        <button type="button" class="close-modal-btn" onclick="closeAddUserPopup()">
-          <i class="fas fa-times"></i>
-        </button>
-      </div>
-
-      <form method="POST" class="add-user-form">
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Full Name</label>
-            <input type="text" name="full_name" placeholder="Enter full name" required>
-          </div>
-
-          <div class="form-group">
-            <label>Username</label>
-            <input type="text" name="username" placeholder="Enter username" required>
-          </div>
-
-          <div class="form-group full-width">
-            <div style="padding: 14px 16px; background: #f8fbff; border: 1px solid #dbe7f0; border-radius: 14px; color: #475569; font-size: 14px; line-height: 1.7;">
-              The employee will set their own email and password later in the account setup page.
-            </div>
-          </div>
-        </div>
-
-        <div class="modal-actions">
-          <button type="button" class="cancel-btn" onclick="closeAddUserPopup()">Cancel</button>
-          <button type="submit" name="add_user" class="save-user-btn">
-            <i class="fas fa-user-plus"></i> Add Employee
-          </button>
-        </div>
-      </form>
-    </div>
   </div>
 
   <div id="actionPopup" class="action-popup"></div>
 
   <script>
     const searchUsers = <?php echo json_encode($searchUsers); ?>;
-    const addUserMessage = <?php echo json_encode($addUserMessage); ?>;
-    const addUserType = <?php echo json_encode($addUserType); ?>;
 
     function showPopup(message, type) {
       const popup = document.getElementById("actionPopup");
@@ -824,27 +714,8 @@ $blocked_result = mysqli_query($conn, $blocked_sql);
       }, 2500);
     }
 
-    function openAddUserPopup() {
-      const modal = document.getElementById("addUserModal");
-      if (!modal) return;
-
-      modal.style.display = "flex";
-      modal.classList.add("show");
-      document.body.classList.add("modal-open");
-    }
-
-    function closeAddUserPopup() {
-      const modal = document.getElementById("addUserModal");
-      if (!modal) return;
-
-      modal.classList.remove("show");
-      modal.style.display = "none";
-      document.body.classList.remove("modal-open");
-    }
-
     document.addEventListener("DOMContentLoaded", function () {
       const userSearch = document.getElementById("userSearch");
-      const addUserModal = document.getElementById("addUserModal");
       const notificationBellBtn = document.getElementById("notificationBellBtn");
       const notificationDropdown = document.getElementById("notificationDropdown");
 
@@ -888,30 +759,11 @@ $blocked_result = mysqli_query($conn, $blocked_sql);
         });
       }
 
-      if (addUserModal) {
-        addUserModal.addEventListener("click", function(e) {
-          if (e.target === addUserModal) {
-            closeAddUserPopup();
-          }
-        });
-      }
-
       document.addEventListener("keydown", function(e) {
-        if (e.key === "Escape") {
-          closeAddUserPopup();
-          if (notificationDropdown) {
-            notificationDropdown.style.display = "none";
-          }
+        if (e.key === "Escape" && notificationDropdown) {
+          notificationDropdown.style.display = "none";
         }
       });
-
-      if (addUserMessage) {
-        showPopup(addUserMessage, addUserType);
-
-        if (addUserType === "error") {
-          openAddUserPopup();
-        }
-      }
     });
   </script>
 

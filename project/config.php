@@ -2,7 +2,7 @@
 $host = "localhost";
 $user = "root";
 $password = "";
-$database = "oneflow_db_sql";
+$database = "oneflow_db";
 
 $conn = mysqli_connect($host, $user, $password, $database);
 
