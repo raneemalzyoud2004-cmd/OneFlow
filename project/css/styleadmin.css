@@ -1325,6 +1325,7 @@ table th {
   color: #64748b;
   text-align: center;
   padding: 20px 0;
+
 }.status.pending {
   background: #fef3c7;
   color: #92400e;
@@ -1427,4 +1428,44 @@ table th {
     flex-direction: column;
     align-items: stretch;
   }
+}
+.submit-btn {
+    background: linear-gradient(135deg, #0B1B32, #0D1E4C, #26415E);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 22px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s ease;
+}
+
+.submit-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(11, 27, 50, 0.2);
+}
+
+.panel + .panel {
+    margin-top: 30px;
+}
+.form-actions {
+    margin-top: 20px;
+}
+.success-message {
+    background: #dff6e5;
+    color: #1d7a3b;
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+.error-message {
+    background: #ffe1e1;
+    color: #b42318;
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    font-weight: 600;
 }
