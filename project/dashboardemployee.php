@@ -38,6 +38,7 @@ $full_name = $_SESSION['full_name'];
     <ul class="sidebar-menu">
       <li class="active"><a href="dashboardemployee.php"><i class="fas fa-house"></i> Dashboard</a></li>
       <li><a href="mytasks.php"><i class="fas fa-list-check"></i> My Tasks</a></li>
+      <li><a href="leaverequests_employee.php"><i class="fas fa-file-circle-check"></i> Leave Requests</a></li>
       <li><a href="myattendance.php"><i class="fas fa-calendar-check"></i> Attendance</a></li>
       <li><a href="myschedule.php"><i class="fas fa-clock"></i> Schedule</a></li>
       <li><a href="notificationsemployee.php"><i class="fas fa-bell"></i> Notifications</a></li>

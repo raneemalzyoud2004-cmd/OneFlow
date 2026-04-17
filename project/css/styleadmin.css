@@ -1325,6 +1325,7 @@ table th {
   color: #64748b;
   text-align: center;
   padding: 20px 0;
+
 }.status.pending {
   background: #fef3c7;
   color: #92400e;
@@ -1338,4 +1339,133 @@ table th {
 .status.rejected {
   background: #fee2e2;
   color: #991b1b;
+}.manage-users-filter-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr auto;
+  gap: 16px;
+  align-items: end;
+}
+
+.filter-group label {
+  display: block;
+  margin-bottom: 8px;
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.filter-group input,
+.filter-group select {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #dbe7f0;
+  background: #ffffff;
+  outline: none;
+  font-size: 14px;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.inline-role-form {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.role-select {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #dbe7f0;
+  background: #ffffff;
+  font-size: 13px;
+  outline: none;
+}
+
+.small-save-btn {
+  border: none;
+  background: linear-gradient(90deg, #0ea5a4, #14b8a6);
+  color: white;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.manage-user-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.manage-pending-text {
+  color: #64748b;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.status.inactive {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.status.pending_setup {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+@media (max-width: 900px) {
+  .manage-users-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .inline-role-form {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}
+.submit-btn {
+    background: linear-gradient(135deg, #0B1B32, #0D1E4C, #26415E);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    padding: 12px 22px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.3s ease;
+}
+
+.submit-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(11, 27, 50, 0.2);
+}
+
+.panel + .panel {
+    margin-top: 30px;
+}
+.form-actions {
+    margin-top: 20px;
+}
+.success-message {
+    background: #dff6e5;
+    color: #1d7a3b;
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    font-weight: 600;
+}
+
+.error-message {
+    background: #ffe1e1;
+    color: #b42318;
+    padding: 12px 16px;
+    border-radius: 12px;
+    margin-bottom: 15px;
+    font-weight: 600;
 }

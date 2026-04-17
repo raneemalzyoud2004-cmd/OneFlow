@@ -495,7 +495,7 @@
               <li><a href="#roles">Roles</a></li>
               <li><a href="#workflow">Workflow</a></li>
               <li><a href="request.php">Request</a></li>
-              <li><a href="login.php">Login</a></li>
+              <li><a href="logout.php">Login</a></li>
             </ul>
 
             <a

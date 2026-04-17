@@ -38,15 +38,27 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
                 if (($row['role'] === 'hr' || $row['role'] === 'employee') && $row['is_blocked'] == 1) {
                     $error = "Your account is blocked. Please contact admin.";
+                } elseif (($row['role'] === 'hr' || $row['role'] === 'employee' || $row['role'] === 'teamleader') && isset($row['account_status']) && $row['account_status'] === 'pending_setup') {
+                    $error = "Your account is not ready yet. Please complete account setup first.";
                 } else {
 
                     if ($row['password'] === $password) {
 
                         $reset_sql = "UPDATE users SET failed_attempts = 0 WHERE id = ?";
                         $reset_stmt = mysqli_prepare($conn, $reset_sql);
-                        mysqli_stmt_bind_param($reset_stmt, "i", $row['id']);
-                        mysqli_stmt_execute($reset_stmt);
-                        mysqli_stmt_close($reset_stmt);
+                        if ($reset_stmt) {
+                            mysqli_stmt_bind_param($reset_stmt, "i", $row['id']);
+                            mysqli_stmt_execute($reset_stmt);
+                            mysqli_stmt_close($reset_stmt);
+                        }
+
+                        $last_login_sql = "UPDATE users SET last_login = NOW() WHERE id = ?";
+                        $last_login_stmt = mysqli_prepare($conn, $last_login_sql);
+                        if ($last_login_stmt) {
+                            mysqli_stmt_bind_param($last_login_stmt, "i", $row['id']);
+                            mysqli_stmt_execute($last_login_stmt);
+                            mysqli_stmt_close($last_login_stmt);
+                        }
 
                         $_SESSION['user_id'] = $row['id'];
                         $_SESSION['full_name'] = $row['full_name'];
@@ -77,17 +89,21 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                             if ($new_attempts >= 3) {
                                 $update_sql = "UPDATE users SET failed_attempts = ?, is_blocked = 1 WHERE id = ?";
                                 $update_stmt = mysqli_prepare($conn, $update_sql);
-                                mysqli_stmt_bind_param($update_stmt, "ii", $new_attempts, $row['id']);
-                                mysqli_stmt_execute($update_stmt);
-                                mysqli_stmt_close($update_stmt);
+                                if ($update_stmt) {
+                                    mysqli_stmt_bind_param($update_stmt, "ii", $new_attempts, $row['id']);
+                                    mysqli_stmt_execute($update_stmt);
+                                    mysqli_stmt_close($update_stmt);
+                                }
 
                                 $error = "Your account has been blocked after 3 failed attempts.";
                             } else {
                                 $update_sql = "UPDATE users SET failed_attempts = ? WHERE id = ?";
                                 $update_stmt = mysqli_prepare($conn, $update_sql);
-                                mysqli_stmt_bind_param($update_stmt, "ii", $new_attempts, $row['id']);
-                                mysqli_stmt_execute($update_stmt);
-                                mysqli_stmt_close($update_stmt);
+                                if ($update_stmt) {
+                                    mysqli_stmt_bind_param($update_stmt, "ii", $new_attempts, $row['id']);
+                                    mysqli_stmt_execute($update_stmt);
+                                    mysqli_stmt_close($update_stmt);
+                                }
 
                                 $remaining = 3 - $new_attempts;
                                 $error = "Invalid password. You have $remaining attempt(s) left before block.";
