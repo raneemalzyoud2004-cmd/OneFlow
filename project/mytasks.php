@@ -589,14 +589,18 @@ function statusClass($status)
 
                   <textarea name="employee_response" placeholder="Write your completed work, explanation, or final solution here..."><?php echo htmlspecialchars($task['employee_response'] ?? ''); ?></textarea>
 
-                 <div class="file-upload-area">
-  <label class="custom-file-label">
-    <i class="fas fa-plus"></i>
-    Upload File
-    <input type="file" name="task_file" onchange="showSelectedFileName(this)">
-  </label>
+               <div class="file-upload-area">
+
+  <div class="drag-drop-box" id="dropArea">
+    <i class="fas fa-cloud-upload-alt"></i>
+    <p>Drag & Drop file here or click to upload</p>
+    <input type="file" name="task_file" id="fileInput" hidden>
+  </div>
 
   <div class="selected-file-name">No file selected</div>
+
+  <div class="file-preview" id="filePreview"></div>
+
 </div>
                   <div class="task-actions">
                     <button type="submit" name="submit_task" class="small-btn submit-btn">
@@ -623,5 +627,49 @@ function showSelectedFileName(input) {
   }
 }
 </script>
+<script>
+const dropArea = document.getElementById("dropArea");
+const fileInput = document.getElementById("fileInput");
+const fileNameBox = document.querySelector(".selected-file-name");
+const previewBox = document.getElementById("filePreview");
+
+dropArea.addEventListener("click", () => fileInput.click());
+
+dropArea.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  dropArea.style.background = "#ccfbf1";
+});
+
+dropArea.addEventListener("dragleave", () => {
+  dropArea.style.background = "#f0fdfa";
+});
+
+dropArea.addEventListener("drop", (e) => {
+  e.preventDefault();
+  fileInput.files = e.dataTransfer.files;
+  handleFile(fileInput.files[0]);
+});
+
+fileInput.addEventListener("change", () => {
+  handleFile(fileInput.files[0]);
+});
+
+function handleFile(file) {
+  if (!file) return;
+
+  fileNameBox.textContent = file.name;
+  previewBox.innerHTML = "";
+
+  if (file.type.startsWith("image/")) {
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      previewBox.innerHTML = '<img src="' + e.target.result + '" />';
+    };
+    reader.readAsDataURL(file);
+  }
+}
+</script>
+
+
 </body>
 </html>

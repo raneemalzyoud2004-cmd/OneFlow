@@ -766,7 +766,7 @@ progress {
 
 .g-5,
 .gy-5 {
-  
+
   --bs-gutter-y: 3rem; }
   .selected-file-name {
   display: inline-block;
@@ -941,6 +941,35 @@ progress {
   .g-sm-5,
   .gy-sm-5 {
     --bs-gutter-y: 3rem; } }
+
+
+    .drag-drop-box {
+  border: 2px dashed #14b8a6;
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  background: #f0fdfa;
+  transition: 0.3s;
+}
+
+.drag-drop-box:hover {
+  background: #ccfbf1;
+}
+
+.drag-drop-box i {
+  font-size: 28px;
+  margin-bottom: 8px;
+  color: #0f766e;
+}
+
+.file-preview img {
+  margin-top: 10px;
+  max-width: 150px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+}
+
 
 @media (min-width: 768px) {
   .col-md {
