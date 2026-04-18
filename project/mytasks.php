@@ -589,14 +589,15 @@ function statusClass($status)
 
                   <textarea name="employee_response" placeholder="Write your completed work, explanation, or final solution here..."><?php echo htmlspecialchars($task['employee_response'] ?? ''); ?></textarea>
 
-                  <div class="file-upload-area">
-                    <label class="custom-file-label">
-                      <i class="fas fa-plus"></i>
-                      Upload File
-                      <input type="file" name="task_file">
-                    </label>
-                  </div>
+                 <div class="file-upload-area">
+  <label class="custom-file-label">
+    <i class="fas fa-plus"></i>
+    Upload File
+    <input type="file" name="task_file" onchange="showSelectedFileName(this)">
+  </label>
 
+  <div class="selected-file-name">No file selected</div>
+</div>
                   <div class="task-actions">
                     <button type="submit" name="submit_task" class="small-btn submit-btn">
                       <i class="fas fa-paper-plane"></i> Submit to Team Leader
@@ -611,6 +612,16 @@ function statusClass($status)
     </section>
   </main>
 </div>
+<script>
+function showSelectedFileName(input) {
+  const fileNameBox = input.closest('.file-upload-area').querySelector('.selected-file-name');
 
+  if (input.files.length > 0) {
+    fileNameBox.textContent = input.files[0].name;
+  } else {
+    fileNameBox.textContent = "No file selected";
+  }
+}
+</script>
 </body>
 </html>

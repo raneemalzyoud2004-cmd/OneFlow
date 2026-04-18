@@ -766,7 +766,15 @@ progress {
 
 .g-5,
 .gy-5 {
+  
   --bs-gutter-y: 3rem; }
+  .selected-file-name {
+  display: inline-block;
+  margin-top: 10px;
+  color: #475569;
+  font-size: 14px;
+  font-weight: 600;
+}
 
 @media (min-width: 576px) {
   .col-sm {
