@@ -10,7 +10,34 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'hr') {
     exit();
 }
 
+include "config.php";
+
 $full_name = $_SESSION['full_name'];
+
+$totalEmployees = 0;
+$leaveRequests = 0;
+$attendanceIssues = 0;
+$newApplicants = 0;
+
+$result = mysqli_query($conn, "SELECT COUNT(*) AS total FROM users WHERE role = 'employee'");
+if ($result) {
+    $totalEmployees = mysqli_fetch_assoc($result)['total'];
+}
+
+$result = mysqli_query($conn, "SELECT COUNT(*) AS total FROM leave_requests WHERE status = 'Pending'");
+if ($result) {
+    $leaveRequests = mysqli_fetch_assoc($result)['total'];
+}
+
+$result = mysqli_query($conn, "SELECT COUNT(*) AS total FROM users WHERE account_status = 'pending_setup'");
+if ($result) {
+    $newApplicants = mysqli_fetch_assoc($result)['total'];
+}
+
+$result = mysqli_query($conn, "SELECT COUNT(*) AS total FROM users WHERE failed_attempts > 0 OR is_blocked = 1");
+if ($result) {
+    $attendanceIssues = mysqli_fetch_assoc($result)['total'];
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -25,7 +52,6 @@ $full_name = $_SESSION['full_name'];
 
 <div class="dashboard-container">
 
-  <!-- Sidebar -->
   <aside class="sidebar">
     <div class="sidebar-top">
       <div class="logo-box">
@@ -54,10 +80,8 @@ $full_name = $_SESSION['full_name'];
     </div>
   </aside>
 
-  <!-- Main Content -->
   <main class="main-content">
 
-    <!-- Topbar -->
     <header class="topbar">
       <div class="topbar-left">
         <h1>HR Dashboard</h1>
@@ -65,7 +89,6 @@ $full_name = $_SESSION['full_name'];
       </div>
 
       <div class="topbar-right">
-
         <div class="search-box">
           <i class="fas fa-search"></i>
           <input type="text" placeholder="Search employees, requests, reports...">
@@ -73,10 +96,9 @@ $full_name = $_SESSION['full_name'];
 
         <div class="icon-btn notification-bell">
           <i class="fas fa-bell"></i>
-          <span class="notif-count">3</span>
+          <span class="notif-count"><?php echo $leaveRequests; ?></span>
         </div>
 
-        <!-- Profile -->
         <div class="admin-profile">
           <div class="admin-avatar">
             <?php echo strtoupper(substr($full_name, 0, 1)); ?>
@@ -87,31 +109,36 @@ $full_name = $_SESSION['full_name'];
           </div>
         </div>
 
-        <!-- Logout -->
         <a href="logout.php" class="logout-btn">Logout</a>
-
       </div>
     </header>
 
-    <!-- Hero -->
     <section class="hero-banner">
       <div class="hero-text">
         <h2>Welcome back, <?php echo htmlspecialchars($full_name); ?> 👋</h2>
-        <p>You have <strong>8 pending leave requests</strong>, <strong>4 attendance issues</strong>, and <strong>6 new applicants</strong> today.</p>
+        <p>
+          You have 
+          <strong><?php echo $leaveRequests; ?> pending leave requests</strong>, 
+          <strong><?php echo $attendanceIssues; ?> attention alerts</strong>, and 
+          <strong><?php echo $newApplicants; ?> pending employee accounts</strong> today.
+        </p>
       </div>
 
       <div class="hero-actions">
-        <button class="hero-btn primary-btn"><i class="fas fa-user-plus"></i> Add Employee</button>
-        <button class="hero-btn secondary-btn"><i class="fas fa-file-export"></i> Export Report</button>
+        <a href="employees.php" class="hero-btn primary-btn">
+          <i class="fas fa-user-plus"></i> Add Employee
+        </a>
+        <button class="hero-btn secondary-btn">
+          <i class="fas fa-file-export"></i> Export Report
+        </button>
       </div>
     </section>
 
-    <!-- Stats -->
     <section class="cards">
       <div class="card">
         <div class="card-icon"><i class="fas fa-users"></i></div>
         <div class="card-info">
-          <h3>120</h3>
+          <h3><?php echo $totalEmployees; ?></h3>
           <p>Total Employees</p>
         </div>
       </div>
@@ -119,7 +146,7 @@ $full_name = $_SESSION['full_name'];
       <div class="card">
         <div class="card-icon"><i class="fas fa-calendar-check"></i></div>
         <div class="card-info">
-          <h3>8</h3>
+          <h3><?php echo $leaveRequests; ?></h3>
           <p>Leave Requests</p>
         </div>
       </div>
@@ -127,16 +154,16 @@ $full_name = $_SESSION['full_name'];
       <div class="card">
         <div class="card-icon"><i class="fas fa-user-plus"></i></div>
         <div class="card-info">
-          <h3>6</h3>
-          <p>New Applicants</p>
+          <h3><?php echo $newApplicants; ?></h3>
+          <p>Pending Accounts</p>
         </div>
       </div>
 
       <div class="card">
         <div class="card-icon"><i class="fas fa-clock"></i></div>
         <div class="card-info">
-          <h3>4</h3>
-          <p>Attendance Issues</p>
+          <h3><?php echo $attendanceIssues; ?></h3>
+          <p>Attention Alerts</p>
         </div>
       </div>
     </section>
