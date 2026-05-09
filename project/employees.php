@@ -37,6 +37,21 @@ if (isset($_POST['update_employee'])) {
     }
 }
 
+if (isset($_POST['deactivate_employee'])) {
+    $id = intval($_POST['employee_id']);
+
+    $deactivate = mysqli_query($conn, "
+        UPDATE users 
+        SET account_status='inactive',
+            is_blocked=1
+        WHERE id=$id AND role='employee'
+    ");
+
+    if ($deactivate) {
+        $successMessage = "Employee deactivated successfully.";
+    }
+}
+
 $totalEmployees = 0;
 $activeEmployees = 0;
 $inactiveEmployees = 0;
@@ -370,13 +385,17 @@ if (isset($_GET['search'])) {
                       Edit
                     </button>
 
-                    <a 
-                      class="action-btn deactivate-btn" 
-                      href="deactivateemployee.php?id=<?php echo $row['id']; ?>"
-                      onclick="return confirm('Are you sure you want to deactivate this employee?');"
-                    >
-                      Deactivate
-                    </a>
+                    <form method="POST" action="employees.php" style="display:inline;">
+                      <input type="hidden" name="employee_id" value="<?php echo $row['id']; ?>">
+                      <button 
+                        type="submit"
+                        name="deactivate_employee"
+                        class="action-btn deactivate-btn"
+                        onclick="return confirm('Are you sure you want to deactivate this employee?');"
+                      >
+                        Deactivate
+                      </button>
+                    </form>
                   </td>
                 </tr>
               <?php endwhile; ?>
