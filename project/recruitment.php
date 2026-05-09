@@ -33,6 +33,8 @@ if (isset($_POST['add_applicant'])) {
 
     if ($insert) {
         $successMessage = "Applicant added successfully.";
+    } else {
+        $successMessage = "Failed to add applicant.";
     }
 }
 
@@ -40,14 +42,56 @@ if (isset($_POST['update_status'])) {
     $applicantId = intval($_POST['applicant_id']);
     $newStatus = mysqli_real_escape_string($conn, $_POST['status']);
 
-    $update = mysqli_query($conn, "
-        UPDATE applicants 
-        SET status='$newStatus' 
-        WHERE id=$applicantId
-    ");
+    if ($newStatus == "Hired") {
+        $applicantQuery = mysqli_query($conn, "SELECT * FROM applicants WHERE id=$applicantId");
 
-    if ($update) {
-        $successMessage = "Applicant status updated successfully.";
+        if ($applicantQuery && mysqli_num_rows($applicantQuery) > 0) {
+            $applicant = mysqli_fetch_assoc($applicantQuery);
+
+            $fullName = mysqli_real_escape_string($conn, $applicant['full_name']);
+            $email = mysqli_real_escape_string($conn, $applicant['email']);
+
+            $usernameBase = strtolower(explode("@", $email)[0]);
+            $username = mysqli_real_escape_string($conn, $usernameBase);
+
+            $temporaryPassword = "Employee@123";
+            $hashedPassword = password_hash($temporaryPassword, PASSWORD_DEFAULT);
+
+            $checkUser = mysqli_query($conn, "SELECT id FROM users WHERE email='$email'");
+
+            if ($checkUser && mysqli_num_rows($checkUser) > 0) {
+                mysqli_query($conn, "UPDATE applicants SET status='Hired' WHERE id=$applicantId");
+                $successMessage = "Applicant marked as hired, but employee account already exists.";
+            } else {
+                $insertUser = mysqli_query($conn, "
+                    INSERT INTO users 
+                    (full_name, username, email, password, role, account_status, salary, failed_attempts, is_blocked)
+                    VALUES
+                    ('$fullName', '$username', '$email', '$hashedPassword', 'employee', 'active', 0, 0, 0)
+                ");
+
+                if ($insertUser) {
+                    mysqli_query($conn, "UPDATE applicants SET status='Hired' WHERE id=$applicantId");
+                    $successMessage = "Applicant hired successfully. Employee account created. Temporary password: Employee@123";
+                } else {
+                    $successMessage = "Failed to create employee account.";
+                }
+            }
+        } else {
+            $successMessage = "Applicant not found.";
+        }
+    } else {
+        $update = mysqli_query($conn, "
+            UPDATE applicants 
+            SET status='$newStatus' 
+            WHERE id=$applicantId
+        ");
+
+        if ($update) {
+            $successMessage = "Applicant status updated successfully.";
+        } else {
+            $successMessage = "Failed to update applicant status.";
+        }
     }
 }
 
@@ -140,7 +184,6 @@ if (isset($_GET['search'])) {
     .shortlist { background: #dbeafe; color: #1e3a8a; }
     .hire { background: #dcfce7; color: #166534; }
     .reject { background: #fee2e2; color: #991b1b; }
-    .view { background: #E5C9D7; color: #0D1E4C; }
 
     .modal-overlay {
       display: none;
@@ -349,7 +392,7 @@ if (isset($_GET['search'])) {
         <div class="card-info">
           <h3><?php echo $hiredApplicants; ?></h3>
           <p>Hired</p>
-          <span>Successfully onboarded</span>
+          <span>Employee account created</span>
         </div>
       </div>
     </section>
@@ -403,7 +446,7 @@ if (isset($_GET['search'])) {
                   </td>
 
                   <td>
-                    <?php if ($row['status'] != "Shortlisted"): ?>
+                    <?php if ($row['status'] != "Shortlisted" && $row['status'] != "Hired"): ?>
                       <form method="POST" action="recruitment.php" class="action-form">
                         <input type="hidden" name="applicant_id" value="<?php echo $row['id']; ?>">
                         <input type="hidden" name="status" value="Shortlisted">
@@ -417,13 +460,18 @@ if (isset($_GET['search'])) {
                       <form method="POST" action="recruitment.php" class="action-form">
                         <input type="hidden" name="applicant_id" value="<?php echo $row['id']; ?>">
                         <input type="hidden" name="status" value="Hired">
-                        <button type="submit" name="update_status" class="action-btn hire">
+                        <button 
+                          type="submit" 
+                          name="update_status" 
+                          class="action-btn hire"
+                          onclick="return confirm('Hire this applicant and create an employee account?');"
+                        >
                           Hire
                         </button>
                       </form>
                     <?php endif; ?>
 
-                    <?php if ($row['status'] != "Rejected"): ?>
+                    <?php if ($row['status'] != "Rejected" && $row['status'] != "Hired"): ?>
                       <form method="POST" action="recruitment.php" class="action-form">
                         <input type="hidden" name="applicant_id" value="<?php echo $row['id']; ?>">
                         <input type="hidden" name="status" value="Rejected">
