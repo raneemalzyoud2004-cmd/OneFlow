@@ -1,6 +1,16 @@
 <?php
 session_start();
+include("config.php");
 
+$reportsQuery = "
+SELECT tasks.*, users.full_name
+FROM tasks
+JOIN users ON tasks.employee_id = users.id
+ORDER BY tasks.id DESC
+LIMIT 5
+";
+
+$reportsResult = mysqli_query($conn, $reportsQuery);
 header("Cache-Control: no-cache, no-store, must-revalidate");
 header("Pragma: no-cache");
 header("Expires: 0");
@@ -335,32 +345,44 @@ $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Lead
                 <th>Deadline</th>
               </tr>
             </thead>
-            <tbody>
-              <tr>
-                <td>Employee Dashboard UI</td>
-                <td>Ahmad Ali</td>
-                <td><span class="status-label progress-label">In Progress</span></td>
-                <td>20 Apr 2026</td>
-              </tr>
-              <tr>
-                <td>Leave Request Testing</td>
-                <td>Omar Sami</td>
-                <td><span class="status-label pending-label">Pending</span></td>
-                <td>22 Apr 2026</td>
-              </tr>
-              <tr>
-                <td>Profile Page Improvement</td>
-                <td>Lina Noor</td>
-                <td><span class="status-label done-label">Completed</span></td>
-                <td>18 Apr 2026</td>
-              </tr>
-              <tr>
-                <td>System Settings Cleanup</td>
-                <td>Sara Khaled</td>
-                <td><span class="status-label progress-label">In Progress</span></td>
-                <td>25 Apr 2026</td>
-              </tr>
-            </tbody>
+          <tbody>
+
+<tr>
+  <td>Leave Request Review</td>
+  <td>Noor</td>
+  <td><span class="status-label progress-label">In Progress</span></td>
+  <td>15 May 2026</td>
+</tr>
+
+<tr>
+  <td>Attendance Records Update</td>
+  <td>Ammar</td>
+  <td><span class="status-label pending-label">Pending</span></td>
+  <td>17 May 2026</td>
+</tr>
+
+<tr>
+  <td>Employee Profile Testing</td>
+  <td>Sara</td>
+  <td><span class="status-label done-label">Completed</span></td>
+  <td>10 May 2026</td>
+</tr>
+
+<tr>
+  <td>Tasks Progress Monitoring</td>
+  <td>Khaled</td>
+  <td><span class="status-label progress-label">In Progress</span></td>
+  <td>20 May 2026</td>
+</tr>
+
+<tr>
+  <td>Notifications Page Review</td>
+  <td>Dana</td>
+  <td><span class="status-label pending-label">Pending</span></td>
+  <td>22 May 2026</td>
+</tr>
+
+</tbody>
           </table>
         </div>
       </div>
@@ -368,14 +390,104 @@ $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Lead
       <div class="performance-box">
         <h3>Team Member Performance</h3>
 
-        <div class="member-performance-list">
+      <div class="member-performance-list">
 
-          <div class="member-performance-item">
-            <div class="member-top">
-              <div>
-                <h4>Ahmad Ali</h4>
-                <span>Frontend Developer</span>
-              </div>
+  <div class="member-performance-item">
+    <div class="member-top">
+      <div>
+        <h4>Noor</h4>
+        <span>Employee</span>
+      </div>
+    </div>
+
+    <div class="member-score">Performance Score: 91%</div>
+
+    <div class="member-progress">
+      <span style="width: 91%;"></span>
+    </div>
+
+    <div class="member-note">
+      Excellent follow-up on leave requests and task updates.
+    </div>
+  </div>
+
+  <div class="member-performance-item">
+    <div class="member-top">
+      <div>
+        <h4>Ammar</h4>
+        <span>Employee</span>
+      </div>
+    </div>
+
+    <div class="member-score">Performance Score: 84%</div>
+
+    <div class="member-progress">
+      <span style="width: 84%;"></span>
+    </div>
+
+    <div class="member-note">
+      Good attendance tracking and profile management performance.
+    </div>
+  </div>
+
+  <div class="member-performance-item">
+    <div class="member-top">
+      <div>
+        <h4>Sara</h4>
+        <span>Employee</span>
+      </div>
+    </div>
+
+    <div class="member-score">Performance Score: 96%</div>
+
+    <div class="member-progress">
+      <span style="width: 96%;"></span>
+    </div>
+
+    <div class="member-note">
+      Fast completion of assigned HR system tasks.
+    </div>
+  </div>
+
+  <div class="member-performance-item">
+    <div class="member-top">
+      <div>
+        <h4>Khaled</h4>
+        <span>Employee</span>
+      </div>
+    </div>
+
+    <div class="member-score">Performance Score: 78%</div>
+
+    <div class="member-progress">
+      <span style="width: 78%;"></span>
+    </div>
+
+    <div class="member-note">
+      Needs improvement in task completion deadlines.
+    </div>
+  </div>
+
+  <div class="member-performance-item">
+    <div class="member-top">
+      <div>
+        <h4>Dana</h4>
+        <span>Employee</span>
+      </div>
+    </div>
+
+    <div class="member-score">Performance Score: 69%</div>
+
+    <div class="member-progress">
+      <span style="width: 69%;"></span>
+    </div>
+
+    <div class="member-note">
+      Inactive recently with pending assigned reviews.
+    </div>
+  </div>
+
+</div>
             </div>
             <div class="member-score">Performance Score: 91%</div>
             <div class="member-progress"><span style="width: 91%;"></span></div>

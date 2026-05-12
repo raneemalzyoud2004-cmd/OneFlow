@@ -43,7 +43,7 @@ if ($activeUsersResult && $row = mysqli_fetch_assoc($activeUsersResult)) {
 }
 
 // Recent requests
-$recentRequestsQuery = "SELECT id, full_name, email, phone, status, created_at
+$recentRequestsQuery = "SELECT id, full_name, email, phone, status
                         FROM requests
                         ORDER BY id DESC
                         LIMIT 8";
@@ -304,7 +304,7 @@ $latestLoginsResult = mysqli_query($conn, $latestLoginsQuery);
                           <?php echo ucfirst($req['status']); ?>
                         </span>
                       </td>
-                      <td><?php echo htmlspecialchars($req['created_at']); ?></td>
+                 <td>Not available</td>
                     </tr>
                   <?php } ?>
                 <?php } else { ?>

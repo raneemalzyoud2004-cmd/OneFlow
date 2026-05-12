@@ -70,7 +70,7 @@ if ($warningQuery) {
 }
 
 // Pending requests
-$requestQuery = mysqli_query($conn, "SELECT full_name, email, created_at FROM requests WHERE status = 'pending' ORDER BY id DESC");
+$requestQuery = mysqli_query($conn, "SELECT full_name, email FROM requests WHERE status = 'pending' ORDER BY id DESC");
 if ($requestQuery) {
     while ($row = mysqli_fetch_assoc($requestQuery)) {
         $notifications[] = [
@@ -78,7 +78,7 @@ if ($requestQuery) {
             "message" => $row['full_name'] . " submitted a new access request.",
             "type" => "request",
             "priority" => notificationPriority('request'),
-            "meta" => !empty($row['created_at']) ? $row['created_at'] : 'Pending review'
+          "meta" => "Pending review"
         ];
     }
 }

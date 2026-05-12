@@ -1,5 +1,6 @@
 <?php
 session_start();
+include("config.php");
 
 header("Cache-Control: no-cache, no-store, must-revalidate");
 header("Pragma: no-cache");
@@ -12,6 +13,17 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'teamleader') {
 
 $full_name = $_SESSION['full_name'] ?? 'Team Leader';
 $first_letter = strtoupper(substr(trim($full_name), 0, 1));
+$teamMembersQuery = mysqli_query($conn, "SELECT COUNT(*) AS total FROM users WHERE role = 'employee' AND id IN (3, 4, 5, 8, 9)");
+$teamMembers = ($teamMembersQuery && $row = mysqli_fetch_assoc($teamMembersQuery)) ? $row['total'] : 0;
+
+$assignedTasksQuery = mysqli_query($conn, "SELECT COUNT(*) AS total FROM tasks");
+$assignedTasks = ($assignedTasksQuery && $row = mysqli_fetch_assoc($assignedTasksQuery)) ? $row['total'] : 0;
+
+$pendingReviewsQuery = mysqli_query($conn, "SELECT COUNT(*) AS total FROM tasks WHERE status = 'Pending'");
+$pendingReviews = ($pendingReviewsQuery && $row = mysqli_fetch_assoc($pendingReviewsQuery)) ? $row['total'] : 0;
+
+$delayedTasksQuery = mysqli_query($conn, "SELECT COUNT(*) AS total FROM tasks WHERE due_date < CURDATE() AND status != 'completed'");
+$delayedTasks = ($delayedTasksQuery && $row = mysqli_fetch_assoc($delayedTasksQuery)) ? $row['total'] : 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -96,12 +108,14 @@ $first_letter = strtoupper(substr(trim($full_name), 0, 1));
     <section class="hero-banner">
       <div class="hero-text">
         <h2>Welcome back, <?php echo htmlspecialchars($full_name); ?> 👋</h2>
-        <p>You have <strong>12 active tasks</strong>, <strong>5 pending reviews</strong>, and <strong>3 delayed tasks</strong> this week.</p>
+      <p>You have <strong><?php echo $assignedTasks; ?> assigned tasks</strong>, <strong><?php echo $pendingReviews; ?> pending reviews</strong>, and <strong><?php echo $delayedTasks; ?> delayed tasks</strong>.</p>
       </div>
 
       <div class="hero-actions">
-        <button class="hero-btn primary-btn"><i class="fas fa-list-check"></i> Assign Task</button>
-        <button class="hero-btn secondary-btn"><i class="fas fa-chart-pie"></i> View Reports</button>
+      <a href="assigntasks.php" class="hero-btn primary-btn" style="text-decoration:none;">
+  <i class="fas fa-list-check"></i> Assign Task
+</a>
+    
       </div>
     </section>
 
@@ -110,7 +124,7 @@ $first_letter = strtoupper(substr(trim($full_name), 0, 1));
       <div class="card">
         <div class="card-icon"><i class="fas fa-users"></i></div>
         <div class="card-info">
-          <h3>8</h3>
+         <h3><?php echo $teamMembers; ?></h3>
           <p>Team Members</p>
         </div>
       </div>
@@ -118,7 +132,7 @@ $first_letter = strtoupper(substr(trim($full_name), 0, 1));
       <div class="card">
         <div class="card-icon"><i class="fas fa-list-check"></i></div>
         <div class="card-info">
-          <h3>12</h3>
+         <h3><?php echo $assignedTasks; ?></h3>
           <p>Assigned Tasks</p>
         </div>
       </div>
@@ -126,7 +140,7 @@ $first_letter = strtoupper(substr(trim($full_name), 0, 1));
       <div class="card">
         <div class="card-icon"><i class="fas fa-spinner"></i></div>
         <div class="card-info">
-          <h3>5</h3>
+      <h3><?php echo $pendingReviews; ?></h3>
           <p>Pending Reviews</p>
         </div>
       </div>
@@ -134,7 +148,7 @@ $first_letter = strtoupper(substr(trim($full_name), 0, 1));
       <div class="card">
         <div class="card-icon"><i class="fas fa-clock"></i></div>
         <div class="card-info">
-          <h3>3</h3>
+       <h3><?php echo $delayedTasks; ?></h3>
           <p>Delayed Tasks</p>
         </div>
       </div>

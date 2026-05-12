@@ -1,11 +1,20 @@
 <?php
 session_start();
+include("config.php");
 
 header("Cache-Control: no-cache, no-store, must-revalidate");
 header("Pragma: no-cache");
 header("Expires: 0");
 
 $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Leader';
+$teamQuery = "SELECT id, full_name, username, email, role, account_status
+              FROM users
+              WHERE role = 'employee'
+              AND id IN (3, 4, 5, 8, 9)
+              ORDER BY id ASC";
+
+$teamResult = mysqli_query($conn, $teamQuery);
+$totalMembers = $teamResult ? mysqli_num_rows($teamResult) : 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -205,141 +214,94 @@ $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Lead
     <section class="hero-banner">
       <div class="hero-text">
         <h2>Your Team Overview 👥</h2>
-        <p>You currently manage <strong>4 team members</strong> with different roles and task statuses.</p>
+       <p>You currently manage <strong><?php echo $totalMembers; ?> team members</strong> from the database.</p>
       </div>
 
       <div class="hero-actions">
-        <button class="hero-btn primary-btn"><i class="fas fa-user-plus"></i> Add Member</button>
+       
         <button class="hero-btn secondary-btn"><i class="fas fa-list-check"></i> Assign New Task</button>
       </div>
     </section>
 
     <section class="team-grid">
 
-      <div class="team-card">
-        <div class="team-top">
-          <div class="team-avatar">A</div>
-          <div class="team-name">
-            <h3>Ahmad Ali</h3>
-            <span>Frontend Developer</span>
-          </div>
-        </div>
+    <?php if ($teamResult && mysqli_num_rows($teamResult) > 0) { ?>
+    
+<?php while ($member = mysqli_fetch_assoc($teamResult)) { 
+    
+$initial = strtoupper(substr($member['full_name'], 0, 1));
 
-        <div class="member-info">
-          <div class="info-row">
-            <span>Status</span>
-            <span class="status-badge active-status">Active</span>
-          </div>
-          <div class="info-row">
-            <span>Assigned Tasks</span>
-            <strong>5</strong>
-          </div>
-          <div class="info-row">
-            <span>Completed</span>
-            <strong>3</strong>
-          </div>
-        </div>
+$statusClass = ($member['account_status'] === 'active') 
+? "active-status" 
+: "offline-status";
 
-        <div class="member-actions">
-          <button class="member-btn view-btn">View Profile</button>
-          <button class="member-btn task-btn">Assign Task</button>
-        </div>
-      </div>
+$statusText = ucfirst($member['account_status']);
+?>
 
-      <div class="team-card">
-        <div class="team-top">
-          <div class="team-avatar">S</div>
-          <div class="team-name">
-            <h3>Sara Khaled</h3>
-            <span>Backend Developer</span>
-          </div>
-        </div>
+<div class="team-card">
 
-        <div class="member-info">
-          <div class="info-row">
-            <span>Status</span>
-            <span class="status-badge busy-status">Busy</span>
-          </div>
-          <div class="info-row">
-            <span>Assigned Tasks</span>
-            <strong>4</strong>
-          </div>
-          <div class="info-row">
-            <span>Completed</span>
-            <strong>2</strong>
-          </div>
-        </div>
+  <div class="team-top">
+    <div class="team-avatar">
+      <?php echo $initial; ?>
+    </div>
 
-        <div class="member-actions">
-          <button class="member-btn view-btn">View Profile</button>
-          <button class="member-btn task-btn">Assign Task</button>
-        </div>
-      </div>
+    <div class="team-name">
+      <h3><?php echo htmlspecialchars($member['full_name']); ?></h3>
+      <span><?php echo ucfirst($member['role']); ?></span>
+    </div>
+  </div>
 
-      <div class="team-card">
-        <div class="team-top">
-          <div class="team-avatar">L</div>
-          <div class="team-name">
-            <h3>Lina Noor</h3>
-            <span>UI/UX Designer</span>
-          </div>
-        </div>
+  <div class="member-info">
 
-        <div class="member-info">
-          <div class="info-row">
-            <span>Status</span>
-            <span class="status-badge active-status">Active</span>
-          </div>
-          <div class="info-row">
-            <span>Assigned Tasks</span>
-            <strong>3</strong>
-          </div>
-          <div class="info-row">
-            <span>Completed</span>
-            <strong>3</strong>
-          </div>
-        </div>
+    <div class="info-row">
+      <span>Status</span>
 
-        <div class="member-actions">
-          <button class="member-btn view-btn">View Profile</button>
-          <button class="member-btn task-btn">Assign Task</button>
-        </div>
-      </div>
+      <span class="status-badge <?php echo $statusClass; ?>">
+        <?php echo $statusText; ?>
+      </span>
+    </div>
 
-      <div class="team-card">
-        <div class="team-top">
-          <div class="team-avatar">O</div>
-          <div class="team-name">
-            <h3>Omar Sami</h3>
-            <span>QA Tester</span>
-          </div>
-        </div>
+    <div class="info-row">
+      <span>Username</span>
+      <strong><?php echo htmlspecialchars($member['username']); ?></strong>
+    </div>
 
-        <div class="member-info">
-          <div class="info-row">
-            <span>Status</span>
-            <span class="status-badge offline-status">Offline</span>
-          </div>
-          <div class="info-row">
-            <span>Assigned Tasks</span>
-            <strong>2</strong>
-          </div>
-          <div class="info-row">
-            <span>Completed</span>
-            <strong>1</strong>
-          </div>
-        </div>
+    <div class="info-row">
+      <span>Email</span>
 
-        <div class="member-actions">
-          <button class="member-btn view-btn">View Profile</button>
-          <button class="member-btn task-btn">Assign Task</button>
-        </div>
-      </div>
+      <strong>
+        <?php 
+        echo !empty($member['email']) 
+        ? htmlspecialchars($member['email']) 
+        : 'No email'; 
+        ?>
+      </strong>
+    </div>
 
-    </section>
+  </div>
 
-  </main>
+  <div class="member-actions">
+
+    <a href="employeeprofile_tl.php?id=<?php echo $member['id']; ?>" 
+   class="member-btn view-btn" 
+   style="text-decoration:none;">
+   View Profile
+</a>
+    
+
+  
+  </div>
+
 </div>
 
+<?php } ?>
+
+<?php } else { ?>
+
+<div class="team-card">
+  <h3>No team members found</h3>
+</div>
+
+<?php } ?>
 </body>
 </html>
