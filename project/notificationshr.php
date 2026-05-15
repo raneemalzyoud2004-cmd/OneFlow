@@ -99,25 +99,8 @@ if ($applicantQuery) {
     }
 }
 
-$userQuery = mysqli_query($conn, "
-    SELECT full_name, account_status, created_at
-    FROM users
-    WHERE role='employee'
-    ORDER BY created_at DESC
-    LIMIT 5
-");
 
-if ($userQuery) {
-    while ($row = mysqli_fetch_assoc($userQuery)) {
-        $notifications[] = [
-            "icon" => "fas fa-user-check",
-            "color" => "green",
-            "title" => "Employee account update: " . $row['full_name'],
-            "details" => "Account status: " . $row['account_status'],
-            "time" => $row['created_at']
-        ];
-    }
-}
+
 
 usort($notifications, function($a, $b) {
     return strtotime($b['time']) - strtotime($a['time']);
