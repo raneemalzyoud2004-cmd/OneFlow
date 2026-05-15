@@ -17,7 +17,9 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
     } elseif ($_SESSION['role'] === 'teamleader') {
         header("Location: dashboardteamleader.php");
         exit();
-    }
+    }elseif ($_SESSION['role'] === 'itsupport') {
+        header("Location: itsupport_dashboard.php");
+        exit();}
 }
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
