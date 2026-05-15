@@ -5,22 +5,24 @@ include("config.php");
 $error = "";
 
 if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
-    if ($_SESSION['role'] === 'admin') {
-        header("Location: dashboardadmin.php");
-        exit();
-    } elseif ($_SESSION['role'] === 'hr') {
-        header("Location: hrdashboard.php");
-        exit();
-    } elseif ($_SESSION['role'] === 'employee') {
-        header("Location: dashboardemployee.php");
-        exit();
-    } elseif ($_SESSION['role'] === 'teamleader') {
-        header("Location: dashboardteamleader.php");
-        exit();
-    }elseif ($_SESSION['role'] === 'itsupport') {
-        header("Location: itsupport_dashboard.php");
-        exit();}
-}
+   if ($row['role'] === 'admin') {
+    header("Location: dashboardadmin.php");
+    exit();
+} elseif ($row['role'] === 'hr') {
+    header("Location: hrdashboard.php");
+    exit();
+} elseif ($row['role'] === 'employee') {
+    header("Location: dashboardemployee.php");
+    exit();
+} elseif ($row['role'] === 'teamleader') {
+    header("Location: dashboardteamleader.php");
+    exit();
+} elseif ($row['role'] === 'itsupport') {
+    header("Location: itsupport_dashboard.php");
+    exit();
+} else {
+    $error = "Invalid user role.";
+}}
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = trim($_POST['username']);
