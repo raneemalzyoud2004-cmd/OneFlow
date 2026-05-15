@@ -1,3 +1,85 @@
+<?php
+session_start();
+include "config.php";
+
+header("Cache-Control: no-cache, no-store, must-revalidate");
+header("Pragma: no-cache");
+header("Expires: 0");
+
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'hr') {
+    header("Location: login.php");
+    exit();
+}
+
+$userId = intval($_SESSION['user_id']);
+$successMessage = "";
+$errorMessage = "";
+
+$userQuery = mysqli_query($conn, "SELECT * FROM users WHERE id=$userId AND role='hr'");
+$userData = mysqli_fetch_assoc($userQuery);
+
+if (!$userData) {
+    header("Location: login.php");
+    exit();
+}
+
+if (isset($_POST['update_profile'])) {
+    $fullName = mysqli_real_escape_string($conn, $_POST['full_name']);
+    $email = mysqli_real_escape_string($conn, $_POST['email']);
+
+    $update = mysqli_query($conn, "
+        UPDATE users 
+        SET full_name='$fullName', email='$email'
+        WHERE id=$userId AND role='hr'
+    ");
+
+    if ($update) {
+        $_SESSION['full_name'] = $fullName;
+        $successMessage = "Profile updated successfully.";
+        $userQuery = mysqli_query($conn, "SELECT * FROM users WHERE id=$userId AND role='hr'");
+        $userData = mysqli_fetch_assoc($userQuery);
+    } else {
+        $errorMessage = "Failed to update profile.";
+    }
+}
+
+if (isset($_POST['change_password'])) {
+    $currentPassword = $_POST['current_password'];
+    $newPassword = $_POST['new_password'];
+    $confirmPassword = $_POST['confirm_password'];
+
+    if ($newPassword !== $confirmPassword) {
+        $errorMessage = "New password and confirmation do not match.";
+    } else {
+        $storedPassword = $userData['password'];
+        $passwordValid = password_verify($currentPassword, $storedPassword) || $currentPassword === $storedPassword;
+
+        if (!$passwordValid) {
+            $errorMessage = "Current password is incorrect.";
+        } else {
+            $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
+
+            $updatePassword = mysqli_query($conn, "
+                UPDATE users 
+                SET password='$hashedPassword'
+                WHERE id=$userId AND role='hr'
+            ");
+
+            if ($updatePassword) {
+                $successMessage = "Password updated successfully.";
+            } else {
+                $errorMessage = "Failed to update password.";
+            }
+        }
+    }
+}
+
+$full_name = $_SESSION['full_name'];
+$email = $userData['email'] ?? "";
+$username = $userData['username'] ?? "";
+$status = $userData['account_status'] ?? "active";
+$lastLogin = $userData['last_login'] ?? "No login recorded";
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,186 +88,269 @@
   <title>Settings - OneFlow</title>
   <link rel="stylesheet" href="css/styleadmin.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <style>
+    .settings-form {
+      display: grid;
+      gap: 16px;
+      padding-top: 10px;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 700;
+      color: #0D1E4C;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 14px;
+      border-radius: 14px;
+      border: 1px solid #d9e1ea;
+      outline: none;
+    }
+
+    .save-btn {
+      background: #0D1E4C;
+      color: white;
+      border: none;
+      padding: 12px 18px;
+      border-radius: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      width: fit-content;
+    }
+
+    .success-message {
+      background: #e7f8ee;
+      color: #166534;
+      padding: 14px 18px;
+      border-radius: 14px;
+      margin-bottom: 18px;
+      font-weight: 700;
+    }
+
+    .error-message {
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 14px 18px;
+      border-radius: 14px;
+      margin-bottom: 18px;
+      font-weight: 700;
+    }
+
+    .preference-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f7fafd;
+      padding: 16px;
+      border-radius: 14px;
+      font-weight: 600;
+      color: #0D1E4C;
+    }
+  </style>
 </head>
+
 <body>
 
-  <div class="dashboard-container">
+<div class="dashboard-container">
 
-    <aside class="sidebar">
-      <div class="sidebar-top">
-        <div class="logo-box">
-          <i class="fa-solid fa-leaf"></i>
-          <h2>OneFlow</h2>
-        </div>
-        <p class="admin-role">HR Panel</p>
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <div class="logo-box">
+        <i class="fa-solid fa-leaf"></i>
+        <h2>OneFlow</h2>
+      </div>
+      <p class="admin-role">HR Panel</p>
+    </div>
+
+    <ul class="sidebar-menu">
+      <li><a href="hrdashboard.php"><i class="fas fa-house"></i> Dashboard</a></li>
+      <li><a href="employees.php"><i class="fas fa-users"></i> Employees</a></li>
+      <li><a href="attendance.php"><i class="fas fa-calendar-check"></i> Attendance</a></li>
+      <li><a href="leaverequests.php"><i class="fas fa-file-circle-check"></i> Leave Requests</a></li>
+      <li><a href="recruitment.php"><i class="fas fa-user-plus"></i> Recruitment</a></li>
+      <li><a href="notificationshr.php"><i class="fas fa-bell"></i> Notifications</a></li>
+      <li class="active"><a href="settingshr.php"><i class="fas fa-gear"></i> Settings</a></li>
+    </ul>
+
+    <div class="sidebar-bottom">
+      <div class="system-card">
+        <p>System Health</p>
+        <h4>Excellent</h4>
+        <span>99.2% uptime</span>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+    <header class="topbar">
+      <div class="topbar-left">
+        <h1>Settings</h1>
+        <p>Manage your HR profile, preferences, and account security.</p>
       </div>
 
-      <ul class="sidebar-menu">
-        <li><a href="hrdashboard.php"><i class="fas fa-house"></i> Dashboard</a></li>
-        <li><a href="employees.php"><i class="fas fa-users"></i> Employees</a></li>
-        <li><a href="attendance.php"><i class="fas fa-calendar-check"></i> Attendance</a></li>
-        <li><a href="leaverequests.php"><i class="fas fa-file-circle-check"></i> Leave Requests</a></li>
-        <li><a href="recruitment.php"><i class="fas fa-user-plus"></i> Recruitment</a></li>
-        <li><a href="notificationshr.php"><i class="fas fa-bell"></i> Notifications</a></li>
-        <li class="active"><a href="settingshr.php"><i class="fas fa-gear"></i> Settings</a></li>
-      </ul>
-
-      <div class="sidebar-bottom">
-        <div class="system-card">
-          <p>System Health</p>
-          <h4>Excellent</h4>
-          <span>99.2% uptime</span>
+      <div class="topbar-right">
+        <div class="admin-profile">
+          <div class="admin-avatar">
+            <?php echo strtoupper(substr($full_name, 0, 1)); ?>
+          </div>
+          <div>
+            <h4><?php echo htmlspecialchars($full_name); ?></h4>
+            <span>HR Manager</span>
+          </div>
         </div>
+
+        <a href="logout.php" class="logout-btn">Logout</a>
       </div>
-    </aside>
+    </header>
 
-    <main class="main-content">
+    <?php if (!empty($successMessage)): ?>
+      <div class="success-message"><?php echo $successMessage; ?></div>
+    <?php endif; ?>
 
-      <header class="topbar">
-        <div class="topbar-left">
-          <h1>Settings</h1>
-          <p>Manage your HR profile, preferences, and account settings.</p>
-        </div>
+    <?php if (!empty($errorMessage)): ?>
+      <div class="error-message"><?php echo $errorMessage; ?></div>
+    <?php endif; ?>
 
-        <div class="topbar-right">
-          <div class="search-box">
-            <i class="fas fa-search"></i>
-            <input type="text" placeholder="Search settings...">
+    <section class="hero-banner">
+      <div class="hero-text">
+        <h2>HR Settings</h2>
+        <p>Update your account details, notification preferences, and security settings.</p>
+      </div>
+
+      <div class="hero-actions">
+        <a href="settingshr.php" class="hero-btn secondary-btn">
+          <i class="fas fa-rotate"></i> Refresh
+        </a>
+      </div>
+    </section>
+
+    <section class="dashboard-grid">
+      <div class="left-column">
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Profile Settings</h2>
           </div>
 
-          <div class="admin-profile">
-            <div class="admin-avatar">H</div>
-            <div>
-              <h4>HR</h4>
-              <span>HR Manager</span>
-            </div>
-          </div>
-
-          <button class="logout-btn">Logout</button>
-        </div>
-      </header>
-
-      <section class="hero-banner">
-        <div class="hero-text">
-          <h2>HR Settings ⚙️</h2>
-          <p>Update your account details, notification preferences, and security settings.</p>
-        </div>
-        <div class="hero-actions">
-          <button class="hero-btn primary-btn"><i class="fas fa-floppy-disk"></i> Save Changes</button>
-        </div>
-      </section>
-
-      <section class="dashboard-grid">
-        <div class="left-column">
-
-          <div class="panel">
-            <div class="panel-header">
-              <h2>Profile Settings</h2>
+          <form method="POST" action="settingshr.php" class="settings-form">
+            <div class="form-group">
+              <label>Full Name</label>
+              <input type="text" name="full_name" value="<?php echo htmlspecialchars($full_name); ?>" required>
             </div>
 
-            <div style="display:grid; gap:16px; padding-top:10px;">
-              <div>
-                <label style="display:block; margin-bottom:8px; font-weight:600;">Full Name</label>
-                <input type="text" value="HR Manager" style="width:100%; padding:14px; border-radius:14px; border:1px solid #d9e1ea; outline:none;">
-              </div>
-
-              <div>
-                <label style="display:block; margin-bottom:8px; font-weight:600;">Email Address</label>
-                <input type="email" value="hr@oneflow.com" style="width:100%; padding:14px; border-radius:14px; border:1px solid #d9e1ea; outline:none;">
-              </div>
-
-              <div>
-                <label style="display:block; margin-bottom:8px; font-weight:600;">Phone Number</label>
-                <input type="text" value="+962790000000" style="width:100%; padding:14px; border-radius:14px; border:1px solid #d9e1ea; outline:none;">
-              </div>
-            </div>
-          </div>
-
-          <div class="panel">
-            <div class="panel-header">
-              <h2>Notification Preferences</h2>
+            <div class="form-group">
+              <label>Email Address</label>
+              <input type="email" name="email" value="<?php echo htmlspecialchars($email); ?>">
             </div>
 
-            <div style="display:grid; gap:16px; padding-top:10px;">
-              <label style="display:flex; align-items:center; justify-content:space-between; background:#f7fafd; padding:16px; border-radius:14px;">
-                <span>Email Notifications</span>
-                <input type="checkbox" checked>
-              </label>
-
-              <label style="display:flex; align-items:center; justify-content:space-between; background:#f7fafd; padding:16px; border-radius:14px;">
-                <span>Leave Request Alerts</span>
-                <input type="checkbox" checked>
-              </label>
-
-              <label style="display:flex; align-items:center; justify-content:space-between; background:#f7fafd; padding:16px; border-radius:14px;">
-                <span>Attendance Alerts</span>
-                <input type="checkbox" checked>
-              </label>
-
-              <label style="display:flex; align-items:center; justify-content:space-between; background:#f7fafd; padding:16px; border-radius:14px;">
-                <span>Recruitment Updates</span>
-                <input type="checkbox">
-              </label>
+            <div class="form-group">
+              <label>Username</label>
+              <input type="text" value="<?php echo htmlspecialchars($username); ?>" readonly>
             </div>
-          </div>
 
+            <button type="submit" name="update_profile" class="save-btn">
+              <i class="fas fa-floppy-disk"></i> Save Profile
+            </button>
+          </form>
         </div>
 
-        <div class="right-column">
-
-          <div class="panel">
-            <div class="panel-header">
-              <h2>Security</h2>
-            </div>
-
-            <div style="display:grid; gap:16px; padding-top:10px;">
-              <div>
-                <label style="display:block; margin-bottom:8px; font-weight:600;">Current Password</label>
-                <input type="password" placeholder="Enter current password" style="width:100%; padding:14px; border-radius:14px; border:1px solid #d9e1ea; outline:none;">
-              </div>
-
-              <div>
-                <label style="display:block; margin-bottom:8px; font-weight:600;">New Password</label>
-                <input type="password" placeholder="Enter new password" style="width:100%; padding:14px; border-radius:14px; border:1px solid #d9e1ea; outline:none;">
-              </div>
-
-              <div>
-                <label style="display:block; margin-bottom:8px; font-weight:600;">Confirm Password</label>
-                <input type="password" placeholder="Confirm new password" style="width:100%; padding:14px; border-radius:14px; border:1px solid #d9e1ea; outline:none;">
-              </div>
-            </div>
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Notification Preferences</h2>
           </div>
 
-          <div class="panel">
-            <div class="panel-header">
-              <h2>Account Status</h2>
-            </div>
+          <div class="settings-form">
+            <label class="preference-item">
+              <span>Email Notifications</span>
+              <input type="checkbox" checked>
+            </label>
 
-            <div class="overview-box">
-              <div class="overview-row">
-                <span>Role</span>
-                <strong>HR Manager</strong>
-              </div>
-              <div class="overview-row">
-                <span>Department</span>
-                <strong>Human Resources</strong>
-              </div>
-              <div class="overview-row">
-                <span>Account Status</span>
-                <strong>Active</strong>
-              </div>
-              <div class="overview-row">
-                <span>Last Login</span>
-                <strong>Today</strong>
-              </div>
-            </div>
+            <label class="preference-item">
+              <span>Leave Request Alerts</span>
+              <input type="checkbox" checked>
+            </label>
+
+            <label class="preference-item">
+              <span>Attendance Alerts</span>
+              <input type="checkbox" checked>
+            </label>
+
+            <label class="preference-item">
+              <span>Recruitment Updates</span>
+              <input type="checkbox" checked>
+            </label>
           </div>
-
         </div>
-      </section>
 
-    </main>
-  </div>
+      </div>
+
+      <div class="right-column">
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Security</h2>
+          </div>
+
+          <form method="POST" action="settingshr.php" class="settings-form">
+            <div class="form-group">
+              <label>Current Password</label>
+              <input type="password" name="current_password" placeholder="Enter current password" required>
+            </div>
+
+            <div class="form-group">
+              <label>New Password</label>
+              <input type="password" name="new_password" placeholder="Enter new password" required>
+            </div>
+
+            <div class="form-group">
+              <label>Confirm Password</label>
+              <input type="password" name="confirm_password" placeholder="Confirm new password" required>
+            </div>
+
+            <button type="submit" name="change_password" class="save-btn">
+              <i class="fas fa-lock"></i> Update Password
+            </button>
+          </form>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <h2>Account Status</h2>
+          </div>
+
+          <div class="overview-box">
+            <div class="overview-row">
+              <span>Role</span>
+              <strong>HR Manager</strong>
+            </div>
+
+            <div class="overview-row">
+              <span>Department</span>
+              <strong>Human Resources</strong>
+            </div>
+
+            <div class="overview-row">
+              <span>Account Status</span>
+              <strong><?php echo htmlspecialchars($status); ?></strong>
+            </div>
+
+            <div class="overview-row">
+              <span>Last Login</span>
+              <strong><?php echo htmlspecialchars($lastLogin); ?></strong>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+</div>
 
 </body>
 </html>

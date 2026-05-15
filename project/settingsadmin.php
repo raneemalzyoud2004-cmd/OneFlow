@@ -268,6 +268,7 @@ $lastLoginLabel = !empty($adminData['last_login']) ? date("Y-m-d h:i A", strtoti
         <li><a href="hrteam.php"><i class="fas fa-user-tie"></i> HR Team</a></li>
         <li><a href="systemlogs.php"><i class="fas fa-clipboard-list"></i> System Logs</a></li>
         <li><a href="analytics.php"><i class="fas fa-chart-line"></i> Analytics</a></li>
+         <li><a href="inventory.php"><i class="fas fa-boxes"></i> Inventory Management</a></li>
         <li><a href="notifications.php"><i class="fas fa-bell"></i> Notifications</a></li>
         <li class="active"><a href="settingsadmin.php"><i class="fas fa-gear"></i> Settings</a></li>
       </ul>
