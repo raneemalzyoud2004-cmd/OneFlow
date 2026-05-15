@@ -22,9 +22,9 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $username = trim($_POST['username']);
-    $password = trim($_POST['password']);
+    $password_input = trim($_POST['password']);
 
-    if (!empty($username) && !empty($password)) {
+    if (!empty($username) && !empty($password_input)) {
 
         $sql = "SELECT * FROM users WHERE username = ?";
         $stmt = mysqli_prepare($conn, $sql);
@@ -42,7 +42,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $error = "Your account is not ready yet. Please complete account setup first.";
                 } else {
 
-                    if ($row['password'] === $password) {
+                    // Verify password using SHA-256 hash
+                    $hashed_input = hash('sha256', $password_input);
+                    if ($row['password'] === $hashed_input) {
 
                         $reset_sql = "UPDATE users SET failed_attempts = 0 WHERE id = ?";
                         $reset_stmt = mysqli_prepare($conn, $reset_sql);
@@ -82,7 +84,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         }
 
                     } else {
-
                         if ($row['role'] === 'hr' || $row['role'] === 'employee') {
                             $new_attempts = $row['failed_attempts'] + 1;
 
@@ -94,7 +95,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                     mysqli_stmt_execute($update_stmt);
                                     mysqli_stmt_close($update_stmt);
                                 }
-
                                 $error = "Your account has been blocked after 3 failed attempts.";
                             } else {
                                 $update_sql = "UPDATE users SET failed_attempts = ? WHERE id = ?";
@@ -104,7 +104,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                     mysqli_stmt_execute($update_stmt);
                                     mysqli_stmt_close($update_stmt);
                                 }
-
                                 $remaining = 3 - $new_attempts;
                                 $error = "Invalid password. You have $remaining attempt(s) left before block.";
                             }
@@ -139,10 +138,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 <body>
 
 <div class="login-wrapper">
-
   <div class="login-left">
     <div class="brand">OneFlow</div>
-
     <div class="welcome-text">
       <h1>Welcome Back</h1>
       <p>Log in to continue your workflow with clarity and confidence.</p>
@@ -152,33 +149,26 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
   <div class="login-right">
     <div class="form-box">
       <h2>Log in</h2>
-
       <?php if (!empty($error)) { ?>
         <p style="color:red; margin-bottom:15px; text-align:center;"><?php echo $error; ?></p>
       <?php } ?>
-
       <form method="POST" action="">
         <div class="input-box">
           <i class="fa-solid fa-user"></i>
           <input type="text" name="username" placeholder="Username" required>
         </div>
-
         <div class="input-box">
           <i class="fa-solid fa-lock"></i>
           <input type="password" name="password" placeholder="Password" required>
         </div>
-
         <button type="submit" class="login-btn">Log in</button>
-
         <a href="index.php" class="back-home">← Return to Home</a>
       </form>
-
       <div class="logo">
         <img src="images/oneflow.png" alt="OneFlow Logo">
       </div>
     </div>
   </div>
-
 </div>
 
 </body>
