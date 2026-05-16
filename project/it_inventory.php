@@ -38,10 +38,34 @@ if ($result) {
     $maintenanceItems = mysqli_fetch_assoc($result)['total'];
 }
 
+$search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
+$statusFilter = isset($_GET['status']) ? mysqli_real_escape_string($conn, $_GET['status']) : '';
+
+$whereClauses = [];
+
+if (!empty($search)) {
+    $whereClauses[] = "(
+        i.item_name LIKE '%$search%' OR
+        i.item_type LIKE '%$search%' OR
+        u.full_name LIKE '%$search%'
+    )";
+}
+
+if (!empty($statusFilter)) {
+    $whereClauses[] = "i.status = '$statusFilter'";
+}
+
+$whereSQL = "";
+
+if (!empty($whereClauses)) {
+    $whereSQL = "WHERE " . implode(" AND ", $whereClauses);
+}
+
 $inventory = mysqli_query($conn, "
     SELECT i.id, i.item_name, i.item_type, i.status, i.notes, u.full_name AS assigned_name
     FROM inventory i
     LEFT JOIN users u ON i.assigned_to = u.id
+    $whereSQL
     ORDER BY i.id DESC
 ");
 ?>
@@ -52,6 +76,7 @@ $inventory = mysqli_query($conn, "
 <title>Device Inventory - OneFlow</title>
 <link rel="stylesheet" href="css/styleadmin.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
 <style>
 .inventory-status {
     padding:7px 13px;
@@ -87,8 +112,103 @@ $inventory = mysqli_query($conn, "
     color:#94a3b8;
     font-weight:700;
 }
+
+.filter-panel {
+    background:white;
+    border-radius:24px;
+    padding:22px;
+    box-shadow:0 10px 30px rgba(15,23,42,0.06);
+    margin-bottom:24px;
+}
+
+.filter-grid {
+    display:grid;
+    grid-template-columns:2fr 1fr auto;
+    gap:18px;
+    align-items:end;
+}
+
+.filter-field label {
+    display:block;
+    margin-bottom:10px;
+    font-weight:800;
+    color:#0D1E4C;
+    font-size:14px;
+}
+
+.filter-field input,
+.filter-field select {
+    width:100%;
+    height:48px;
+    padding:0 14px;
+    border-radius:14px;
+    border:1px solid #dbe7f0;
+    outline:none;
+    font-size:14px;
+    color:#0f172a;
+    background:#ffffff;
+    box-shadow:0 6px 18px rgba(15,23,42,0.04);
+}
+
+.filter-actions {
+    display:flex;
+    gap:10px;
+}
+
+.apply-btn {
+    height:48px;
+    padding:0 18px;
+    border:none;
+    border-radius:14px;
+    background:linear-gradient(90deg,#0ea5a4,#14b8a6);
+    color:white;
+    font-weight:800;
+    cursor:pointer;
+    box-shadow:0 10px 18px rgba(20,184,166,0.22);
+}
+
+.reset-btn {
+    height:48px;
+    padding:0 18px;
+    border-radius:14px;
+    background:#e2e8f0;
+    color:#0D1E4C;
+    font-weight:800;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    text-decoration:none;
+}
+
+.item-name-box {
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.item-icon {
+    width:38px;
+    height:38px;
+    border-radius:12px;
+    background:#eef8f8;
+    color:#14b8a6;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+
+@media(max-width:900px) {
+    .filter-grid {
+        grid-template-columns:1fr;
+    }
+
+    .filter-actions {
+        justify-content:flex-start;
+    }
+}
 </style>
 </head>
+
 <body>
 
 <div class="dashboard-container">
@@ -113,9 +233,9 @@ $inventory = mysqli_query($conn, "
 
 <div class="sidebar-bottom">
     <div class="system-card">
-        <p>System Status</p>
-        <h4>Running</h4>
-        <span>All systems operational</span>
+        <p>Inventory Status</p>
+        <h4>Live Data</h4>
+        <span>Search and filter enabled</span>
     </div>
 </div>
 
@@ -186,9 +306,51 @@ $inventory = mysqli_query($conn, "
     </div>
 </section>
 
+<section class="filter-panel">
+
+<div class="panel-header">
+    <h2>Search and Filter</h2>
+</div>
+
+<form method="GET" style="width:100%; margin-top:14px;">
+
+<div class="filter-grid">
+
+    <div class="filter-field">
+        <label>Search</label>
+        <input
+            type="text"
+            name="search"
+            placeholder="Search by item name, item type, or employee name"
+            value="<?php echo htmlspecialchars($search); ?>"
+        >
+    </div>
+
+    <div class="filter-field">
+        <label>Status</label>
+        <select name="status">
+            <option value="">All Status</option>
+            <option value="Available" <?php echo $statusFilter === 'Available' ? 'selected' : ''; ?>>Available</option>
+            <option value="In Use" <?php echo $statusFilter === 'In Use' ? 'selected' : ''; ?>>In Use</option>
+            <option value="Maintenance" <?php echo $statusFilter === 'Maintenance' ? 'selected' : ''; ?>>Maintenance</option>
+        </select>
+    </div>
+
+    <div class="filter-actions">
+        <button type="submit" class="apply-btn">Apply</button>
+        <a href="it_inventory.php" class="reset-btn">Reset</a>
+    </div>
+
+</div>
+
+</form>
+
+</section>
+
 <section class="panel">
     <div class="panel-header">
         <h2>All Inventory Items</h2>
+        <a href="it_whoholdswhat.php">View Assigned Devices</a>
     </div>
 
     <div class="table-wrapper">
@@ -220,8 +382,18 @@ $inventory = mysqli_query($conn, "
                         ?>
                         <tr>
                             <td>#<?php echo $item['id']; ?></td>
-                            <td><strong><?php echo htmlspecialchars($item['item_name']); ?></strong></td>
+
+                            <td>
+                                <div class="item-name-box">
+                                    <div class="item-icon">
+                                        <i class="fas fa-laptop"></i>
+                                    </div>
+                                    <strong><?php echo htmlspecialchars($item['item_name']); ?></strong>
+                                </div>
+                            </td>
+
                             <td><?php echo htmlspecialchars($item['item_type']); ?></td>
+
                             <td>
                                 <?php if (!empty($item['assigned_name'])) { ?>
                                     <?php echo htmlspecialchars($item['assigned_name']); ?>
@@ -229,11 +401,13 @@ $inventory = mysqli_query($conn, "
                                     <span class="empty-holder">Unassigned</span>
                                 <?php } ?>
                             </td>
+
                             <td>
                                 <span class="inventory-status <?php echo $statusClass; ?>">
                                     <?php echo htmlspecialchars($item['status']); ?>
                                 </span>
                             </td>
+
                             <td>
                                 <div class="inventory-note">
                                     <?php echo !empty($item['notes']) ? htmlspecialchars($item['notes']) : 'No notes'; ?>

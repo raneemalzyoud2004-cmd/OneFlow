@@ -26,6 +26,7 @@
       <li><a href="myattendance.php"><i class="fas fa-calendar-check"></i> My Attendance</a></li>
       <li class="active"><a href="myschedule.php"><i class="fas fa-clock"></i> My Schedule</a></li>
       <li><a href="notificationsemployee.php"><i class="fas fa-bell"></i> Notifications</a></li>
+      <li><a href="report_issue.php"><i class="fas fa-headset"></i> Report Issue</a></li>
       <li><a href="settingsemployee.php"><i class="fas fa-gear"></i> Settings</a></li>
     </ul>
 
