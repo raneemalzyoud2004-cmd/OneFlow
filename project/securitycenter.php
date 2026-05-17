@@ -103,12 +103,13 @@ $riskyUsersResult = mysqli_query($conn, $riskyUsersQuery);
       </div>
 
       <ul class="sidebar-menu">
-        <li class="active"><a href="dashboardadmin.php"><i class="fas fa-house"></i> Dashboard</a></li>
+       <li><a href="dashboardadmin.php"><i class="fas fa-house"></i> Dashboard</a></li>
         <li><a href="manageusers.php"><i class="fas fa-users"></i> Manage Users</a></li>
         <li><a href="hrteam.php"><i class="fas fa-user-tie"></i> HR Team</a></li>
         <li><a href="systemlogs.php"><i class="fas fa-file-circle-check"></i> System Logs</a></li>
         <li><a href="analytics.php"><i class="fas fa-chart-line"></i> Analytics</a></li>
-        <li><a href="securitycenter.php"><i class="fas fa-shield-halved"></i> Security Center</a></li>
+        <li class="active"><a href="securitycenter.php"><i class="fas fa-shield-halved"></i> Security Center</a></li>
+        <li><a href="inventory.php"><i class="fas fa-boxes"></i> Inventory Management</a></li>
         <li><a href="notifications.php"><i class="fas fa-bell"></i> Notifications</a></li>
         <li><a href="report_issue.php"><i class="fas fa-headset"></i> Report Issue</a></li>
         <li><a href="settingsadmin.php"><i class="fas fa-gear"></i> Settings</a></li>
