@@ -38,6 +38,26 @@ if (isset($_POST['add_applicant'])) {
     }
 }
 
+if (isset($_POST['schedule_interview'])) {
+    $applicantId = intval($_POST['applicant_id']);
+    $interviewDate = mysqli_real_escape_string($conn, $_POST['interview_date']);
+    $interviewTime = mysqli_real_escape_string($conn, $_POST['interview_time']);
+    $interviewNotes = mysqli_real_escape_string($conn, $_POST['interview_notes']);
+    $interviewDateTime = $interviewDate . " " . $interviewTime . ":00";
+
+    $update = mysqli_query($conn, "
+        UPDATE applicants
+        SET interview_date='$interviewDateTime', status='Shortlisted', notes=CONCAT(IFNULL(notes,''), '\nInterview Notes: $interviewNotes')
+        WHERE id=$applicantId
+    ");
+
+    if ($update) {
+        $successMessage = "Interview scheduled successfully.";
+    } else {
+        $successMessage = "Failed to schedule interview.";
+    }
+}
+
 if (isset($_POST['update_status'])) {
     $applicantId = intval($_POST['applicant_id']);
     $newStatus = mysqli_real_escape_string($conn, $_POST['status']);
@@ -179,11 +199,16 @@ if (isset($_GET['search'])) {
       font-weight: 700;
       font-size: 13px;
       display: inline-block;
+      text-decoration: none;
+      margin-bottom: 5px;
     }
 
     .shortlist { background: #dbeafe; color: #1e3a8a; }
     .hire { background: #dcfce7; color: #166534; }
     .reject { background: #fee2e2; color: #991b1b; }
+    .cv-view { background: #e0f2fe; color: #075985; }
+    .cv-download { background: #fef3c7; color: #92400e; }
+    .schedule { background: #ede9fe; color: #5b21b6; }
 
     .modal-overlay {
       display: none;
@@ -270,6 +295,15 @@ if (isset($_GET['search'])) {
       color: #6b7280;
       font-size: 13px;
       font-weight: 600;
+      white-space: pre-line;
+    }
+
+    .actions-wrap {
+      min-width: 210px;
+    }
+
+    .cv-actions {
+      min-width: 145px;
     }
   </style>
 </head>
@@ -432,7 +466,19 @@ if (isset($_GET['search'])) {
                   <td><?php echo htmlspecialchars($row['phone'] ?: 'No phone'); ?></td>
                   <td><?php echo htmlspecialchars($row['email']); ?></td>
                   <td><?php echo htmlspecialchars($row['interview_date'] ?: 'Not scheduled'); ?></td>
-                  <td><?php echo htmlspecialchars($row['cv_file'] ?: 'No CV'); ?></td>
+
+                  <td class="cv-actions">
+                    <?php if (!empty($row['cv_file'])): ?>
+                      <a href="<?php echo htmlspecialchars($row['cv_file']); ?>" target="_blank" class="action-btn cv-view">
+                        View CV
+                      </a>
+                      <a href="<?php echo htmlspecialchars($row['cv_file']); ?>" download class="action-btn cv-download">
+                        Download
+                      </a>
+                    <?php else: ?>
+                      No CV
+                    <?php endif; ?>
+                  </td>
 
                   <td>
                     <?php
@@ -445,8 +491,18 @@ if (isset($_GET['search'])) {
                     </span>
                   </td>
 
-                  <td>
-                    <?php if ($row['status'] != "Shortlisted" && $row['status'] != "Hired"): ?>
+                  <td class="actions-wrap">
+                    <?php if ($row['status'] != "Hired" && $row['status'] != "Rejected"): ?>
+                      <button 
+                        type="button" 
+                        class="action-btn schedule"
+                        onclick="openScheduleModal(<?php echo $row['id']; ?>, '<?php echo htmlspecialchars($row['full_name'], ENT_QUOTES); ?>')"
+                      >
+                        Schedule
+                      </button>
+                    <?php endif; ?>
+
+                    <?php if ($row['status'] != "Shortlisted" && $row['status'] != "Hired" && $row['status'] != "Rejected"): ?>
                       <form method="POST" action="recruitment.php" class="action-form">
                         <input type="hidden" name="applicant_id" value="<?php echo $row['id']; ?>">
                         <input type="hidden" name="status" value="Shortlisted">
@@ -456,7 +512,7 @@ if (isset($_GET['search'])) {
                       </form>
                     <?php endif; ?>
 
-                    <?php if ($row['status'] != "Hired"): ?>
+                    <?php if ($row['status'] != "Hired" && $row['status'] != "Rejected"): ?>
                       <form method="POST" action="recruitment.php" class="action-form">
                         <input type="hidden" name="applicant_id" value="<?php echo $row['id']; ?>">
                         <input type="hidden" name="status" value="Hired">
@@ -528,7 +584,7 @@ if (isset($_GET['search'])) {
 
       <div class="form-group">
         <label>CV File Name / Link</label>
-        <input type="text" name="cv_file" placeholder="example_cv.pdf">
+        <input type="text" name="cv_file" placeholder="uploads/cv/example_cv.pdf">
       </div>
 
       <div class="form-group">
@@ -559,6 +615,37 @@ if (isset($_GET['search'])) {
   </div>
 </div>
 
+<div class="modal-overlay" id="scheduleModal">
+  <div class="modal-box">
+    <h2>Schedule Interview</h2>
+    <p id="scheduleApplicantName" class="small-text" style="margin-bottom: 18px;"></p>
+
+    <form method="POST" action="recruitment.php">
+      <input type="hidden" name="applicant_id" id="scheduleApplicantId">
+
+      <div class="form-group">
+        <label>Interview Date</label>
+        <input type="date" name="interview_date" required>
+      </div>
+
+      <div class="form-group">
+        <label>Interview Time</label>
+        <input type="time" name="interview_time" required>
+      </div>
+
+      <div class="form-group">
+        <label>Interview Notes</label>
+        <textarea name="interview_notes" placeholder="Example: Online interview, bring portfolio, technical questions..."></textarea>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="cancel-btn" onclick="closeScheduleModal()">Cancel</button>
+        <button type="submit" name="schedule_interview" class="save-btn">Save Interview</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script>
 function openAddModal() {
   document.getElementById("addModal").style.display = "flex";
@@ -568,10 +655,26 @@ function closeAddModal() {
   document.getElementById("addModal").style.display = "none";
 }
 
+function openScheduleModal(id, name) {
+  document.getElementById("scheduleApplicantId").value = id;
+  document.getElementById("scheduleApplicantName").innerText = "Applicant: " + name;
+  document.getElementById("scheduleModal").style.display = "flex";
+}
+
+function closeScheduleModal() {
+  document.getElementById("scheduleModal").style.display = "none";
+}
+
 window.onclick = function(event) {
-  const modal = document.getElementById("addModal");
-  if (event.target === modal) {
+  const addModal = document.getElementById("addModal");
+  const scheduleModal = document.getElementById("scheduleModal");
+
+  if (event.target === addModal) {
     closeAddModal();
+  }
+
+  if (event.target === scheduleModal) {
+    closeScheduleModal();
   }
 }
 </script>

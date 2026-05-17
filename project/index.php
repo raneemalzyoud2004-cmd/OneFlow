@@ -496,6 +496,7 @@
               <li><a href="#workflow">Workflow</a></li>
               <li><a href="request.php">Request</a></li>
               <li><a href="logout.php">Login</a></li>
+              <li><a href="apply.php">Apply</a></li>
             </ul>
 
             <a
@@ -544,6 +545,7 @@
             <div class="hero-buttons">
               <a href="login.php" class="btn-oneflow-primary">Login</a>
               <a href="request.php" class="btn-oneflow-light">Request</a>
+              <a href="apply.php" class="btn-oneflow-outline">Apply Now</a>
             </div>
           </div>
         </div>
@@ -742,6 +744,7 @@
           <div class="hero-buttons" style="opacity: 1; transform: none; animation: none;">
             <a href="login.php" class="btn-oneflow-primary">Go to Login</a>
             <a href="request.php" class="btn-oneflow-light">Request</a>
+            <a href="apply.php" class="btn-oneflow-outline">Apply Now</a>
           </div>
         </div>
       </div>
