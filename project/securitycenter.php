@@ -110,6 +110,7 @@ $riskyUsersResult = mysqli_query($conn, $riskyUsersQuery);
         <li><a href="analytics.php"><i class="fas fa-chart-line"></i> Analytics</a></li>
         <li><a href="securitycenter.php"><i class="fas fa-shield-halved"></i> Security Center</a></li>
         <li><a href="notifications.php"><i class="fas fa-bell"></i> Notifications</a></li>
+        <li><a href="report_issue.php"><i class="fas fa-headset"></i> Report Issue</a></li>
         <li><a href="settingsadmin.php"><i class="fas fa-gear"></i> Settings</a></li>
       </ul>
 

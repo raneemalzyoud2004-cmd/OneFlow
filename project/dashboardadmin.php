@@ -211,7 +211,9 @@ $blocked_result = mysqli_query($conn, $blocked_sql);
         <li><a href="systemlogs.php"><i class="fas fa-file-circle-check"></i> System Logs</a></li>
         <li><a href="analytics.php"><i class="fas fa-chart-line"></i> Analytics</a></li>
         <li><a href="securitycenter.php"><i class="fas fa-shield-halved"></i> Security Center</a></li>
+        <li><a href="inventory.php"><i class="fas fa-boxes"></i> Inventory Management</a></li>
         <li><a href="notifications.php"><i class="fas fa-bell"></i> Notifications</a></li>
+        <li><a href="report_issue.php"><i class="fas fa-headset"></i> Report Issue</a></li>
         <li><a href="settingsadmin.php"><i class="fas fa-gear"></i> Settings</a></li>
       </ul>
 
@@ -505,7 +507,11 @@ $blocked_result = mysqli_query($conn, $blocked_sql);
                 <h4>View Users</h4>
                 <p>Browse all users in the system</p>
               </a>
-
+<a href="inventory.php" class="quick-card">
+  <i class="fas fa-boxes"></i>
+  <h4>Inventory Management</h4>
+  <p>Manage devices and other assets</p>
+</a>
               
             </div>
           </div>

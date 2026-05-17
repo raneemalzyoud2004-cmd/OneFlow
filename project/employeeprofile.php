@@ -172,6 +172,7 @@ $lastLogin = !empty($user['last_login']) ? $user['last_login'] : 'No login yet';
       <li><a href="leaverequests.php"><i class="fas fa-file-circle-check"></i> Leave Requests</a></li>
       <li><a href="recruitment.php"><i class="fas fa-user-plus"></i> Recruitment</a></li>
       <li><a href="notificationshr.php"><i class="fas fa-bell"></i> Notifications</a></li>
+      <li><a href="report_issue.php"><i class="fas fa-headset"></i> Report Issue</a></li>
       <li><a href="settingshr.php"><i class="fas fa-gear"></i> Settings</a></li>
     </ul>
 

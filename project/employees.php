@@ -56,7 +56,7 @@ $totalEmployees = 0;
 $activeEmployees = 0;
 $inactiveEmployees = 0;
 $pendingAccounts = 0;
-
+$roleFilter = isset($_GET['role']) ? $_GET['role'] : '';
 $result = mysqli_query($conn, "SELECT COUNT(*) AS total FROM users WHERE role='employee'");
 if ($result) $totalEmployees = mysqli_fetch_assoc($result)['total'];
 
@@ -70,28 +70,31 @@ $result = mysqli_query($conn, "SELECT COUNT(*) AS total FROM users WHERE role='e
 if ($result) $pendingAccounts = mysqli_fetch_assoc($result)['total'];
 
 $search = "";
-if (isset($_GET['search'])) {
-    $search = mysqli_real_escape_string($conn, $_GET['search']);
-    $employees = mysqli_query($conn, "
-        SELECT id, full_name, username, email, role, account_status, salary
-        FROM users
-        WHERE role='employee'
-        AND (
-            full_name LIKE '%$search%' 
-            OR username LIKE '%$search%' 
-            OR email LIKE '%$search%'
-        )
-        ORDER BY id DESC
-    ");
-} else {
-    $employees = mysqli_query($conn, "
-        SELECT id, full_name, username, email, role, account_status, salary
-        FROM users
-        WHERE role='employee'
-        ORDER BY id DESC
-    ");
+$search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
+
+$whereClauses = []; // no hardcoded role
+
+// Add search filter if exists
+if (!empty($search)) {
+    $whereClauses[] = "(full_name LIKE '%$search%' OR username LIKE '%$search%' OR email LIKE '%$search%')";
 }
+
+// Add role filter if selected
+if (!empty($roleFilter)) {
+    $whereClauses[] = "role='$roleFilter'";
+}
+
+// Build the WHERE clause
+$whereSQL = !empty($whereClauses) ? "WHERE " . implode(" AND ", $whereClauses) : "";
+
+$employees = mysqli_query($conn, "
+    SELECT id, full_name, username, email, role, account_status, salary
+    FROM users
+    $whereSQL
+    ORDER BY id DESC
+");
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -234,6 +237,7 @@ if (isset($_GET['search'])) {
       <li><a href="leaverequests.php"><i class="fas fa-file-circle-check"></i> Leave Requests</a></li>
       <li><a href="recruitment.php"><i class="fas fa-user-plus"></i> Recruitment</a></li>
       <li><a href="notificationshr.php"><i class="fas fa-bell"></i> Notifications</a></li>
+      <li><a href="report_issue.php"><i class="fas fa-headset"></i> Report Issue</a></li>
       <li><a href="settingshr.php"><i class="fas fa-gear"></i> Settings</a></li>
     </ul>
 
@@ -329,7 +333,130 @@ if (isset($_GET['search'])) {
         </div>
       </div>
     </section>
+<div class="panel">
+      <div class="panel-header">
+        <h2>Search and Filter</h2>
+      </div>
 
+      <form method="GET" style="width:100%;">
+        <div style="
+          display:grid;
+          grid-template-columns: 2fr 1fr auto;
+          gap:18px;
+          align-items:end;
+          width:100%;
+        ">
+          
+          <div style="width:100%;">
+            <label for="search" style="
+              display:block;
+              margin-bottom:10px;
+              color:#0f172a;
+              font-size:14px;
+              font-weight:700;
+            ">Search</label>
+
+            <input
+              type="text"
+              id="search"
+              name="search"
+              placeholder="Name, username, or email"
+              value="<?php echo htmlspecialchars($search); ?>"
+              style="
+                width:100%;
+                height:48px;
+                padding:0 14px;
+                border:1px solid #dbe7f0;
+                border-radius:14px;
+                background:#ffffff;
+                outline:none;
+                font-size:14px;
+                color:#0f172a;
+                box-shadow:0 6px 18px rgba(15, 23, 42, 0.04);
+              "
+            >
+          </div>
+
+          <div style="width:100%;">
+            <label for="role" style="
+              display:block;
+              margin-bottom:10px;
+              color:#0f172a;
+              font-size:14px;
+              font-weight:700;
+            ">Role</label>
+
+            <select
+              id="role"
+              name="role"
+              style="
+                width:100%;
+                height:48px;
+                padding:0 14px;
+                border:1px solid #dbe7f0;
+                border-radius:14px;
+                background:#ffffff;
+                outline:none;
+                font-size:14px;
+                color:#0f172a;
+                box-shadow:0 6px 18px rgba(15, 23, 42, 0.04);
+              "
+            >
+              <option value="">All Roles</option>
+              <option value="admin" <?php echo $roleFilter === 'admin' ? 'selected' : ''; ?>>Admin</option>
+              <option value="hr" <?php echo $roleFilter === 'hr' ? 'selected' : ''; ?>>HR</option>
+              <option value="employee" <?php echo $roleFilter === 'employee' ? 'selected' : ''; ?>>Employee</option>
+              <option value="teamleader" <?php echo $roleFilter === 'teamleader' ? 'selected' : ''; ?>>Team Leader</option>
+            </select>
+          </div>
+
+          <div style="
+            display:flex;
+            gap:10px;
+            align-items:center;
+          ">
+            <button
+              type="submit"
+              style="
+                min-width:110px;
+                height:48px;
+                border:none;
+                border-radius:14px;
+                font-size:14px;
+                font-weight:700;
+                cursor:pointer;
+                background:linear-gradient(90deg, #0ea5a4, #14b8a6);
+                color:white;
+                box-shadow:0 10px 18px rgba(20, 184, 166, 0.22);
+              "
+            >
+              Apply
+            </button>
+
+            <a
+              href="manageusers.php"
+              style="
+                min-width:110px;
+                height:48px;
+                border:none;
+                border-radius:14px;
+                font-size:14px;
+                font-weight:700;
+                text-decoration:none;
+                display:inline-flex;
+                align-items:center;
+                justify-content:center;
+                background:#e2e8f0;
+                color:#0f172a;
+              "
+            >
+              Reset
+            </a>
+          </div>
+
+        </div>
+      </form>
+    </div>
     <section class="panel">
       <div class="panel-header">
         <h2>Employee List</h2>

@@ -165,6 +165,7 @@ $totalMembers = $teamResult ? mysqli_num_rows($teamResult) : 0;
       <li><a href="tasksprogress.php"><i class="fas fa-chart-line"></i> Tasks Progress</a></li>
       <li><a href="reportsteamleader.php"><i class="fas fa-file-lines"></i> Reports</a></li>
       <li><a href="notificationsteamleader.php"><i class="fas fa-bell"></i> Notifications</a></li>
+      <li><a href="report_issue.php"><i class="fas fa-headset"></i> Report Issue</a></li>
       <li><a href="settingsteamleader.php"><i class="fas fa-gear"></i> Settings</a></li>
     </ul>
 
