@@ -16,21 +16,26 @@ body {
 }
 
 /* Sidebar */
-.sidebar {
-  width: 280px;
-  height: 100vh;
-  position: fixed;
-  top: 0;
-  left: 0;
-  background: linear-gradient(180deg, #07152f, #0b1f46, #12396b);
-  color: white;
-  padding: 28px 20px;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  box-shadow: 10px 0 30px rgba(10, 20, 50, 0.12);
-  overflow-y: auto;
-  z-index: 1000;
+..sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 280px !important;
+    height: 100vh !important;
+    z-index: 1000 !important;
+    overflow-y: auto !important;
+}
+
+.main-content {
+    margin-left: 280px;
+    padding: 28px 30px;
+    width: calc(100% - 280px);
+}
+
+.sidebar-bottom {
+    position: absolute !important;
+    bottom: 0 !important;
+    width: 100% !important;
 }
 .logo-box {
   display: flex;

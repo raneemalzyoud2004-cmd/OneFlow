@@ -48,7 +48,7 @@
         </div>
 
         <div class="topbar-right">
-          <button class="logout-btn">Logout</button>
+          <a href="logout.php" class="logout-btn">Logout</a>
         </div>
       </header>
 
