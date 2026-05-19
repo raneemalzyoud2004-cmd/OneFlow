@@ -226,6 +226,12 @@ $inventory = mysqli_query($conn, "
 
 <ul class="sidebar-menu">
     <li><a href="itsupport_dashboard.php"><i class="fas fa-house"></i> Dashboard</a></li>
+    <li>
+<a href="itsupport_tickets.php">
+<i class="fas fa-user-check"></i>
+All Tickets
+</a>
+</li>
     <li class="active"><a href="it_inventory.php"><i class="fas fa-laptop"></i> Device Inventory</a></li>
     <li><a href="it_whoholdswhat.php"><i class="fas fa-user-check"></i> Who Holds What</a></li>
     <li><a href="logout.php"><i class="fas fa-right-from-bracket"></i> Logout</a></li>
