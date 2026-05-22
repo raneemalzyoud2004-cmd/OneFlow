@@ -11,25 +11,22 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'hr') {
     exit();
 }
 
-$full_name = $_SESSION['full_name'];
+$full_name = $_SESSION['full_name'] ?? 'HR';
 $today = date("Y-m-d");
 
-$presentToday = 0;
-$absentToday = 0;
-$lateToday = 0;
-$onLeaveToday = 0;
+function getCount($conn, $today, $status) {
+    $status = mysqli_real_escape_string($conn, $status);
+    $result = mysqli_query($conn, "SELECT COUNT(*) AS total FROM attendance WHERE attendance_date='$today' AND status='$status'");
+    if ($result) {
+        return mysqli_fetch_assoc($result)['total'];
+    }
+    return 0;
+}
 
-$result = mysqli_query($conn, "SELECT COUNT(*) AS total FROM attendance WHERE attendance_date='$today' AND status='Present'");
-if ($result) $presentToday = mysqli_fetch_assoc($result)['total'];
-
-$result = mysqli_query($conn, "SELECT COUNT(*) AS total FROM attendance WHERE attendance_date='$today' AND status='Absent'");
-if ($result) $absentToday = mysqli_fetch_assoc($result)['total'];
-
-$result = mysqli_query($conn, "SELECT COUNT(*) AS total FROM attendance WHERE attendance_date='$today' AND status='Late'");
-if ($result) $lateToday = mysqli_fetch_assoc($result)['total'];
-
-$result = mysqli_query($conn, "SELECT COUNT(*) AS total FROM attendance WHERE attendance_date='$today' AND status='On Leave'");
-if ($result) $onLeaveToday = mysqli_fetch_assoc($result)['total'];
+$presentToday = getCount($conn, $today, "Present");
+$absentToday = getCount($conn, $today, "Absent");
+$lateToday = getCount($conn, $today, "Late");
+$onLeaveToday = getCount($conn, $today, "On Leave");
 
 $search = "";
 if (isset($_GET['search'])) {
@@ -45,6 +42,7 @@ if (isset($_GET['search'])) {
             OR users.email LIKE '%$search%'
             OR attendance.status LIKE '%$search%'
             OR attendance.notes LIKE '%$search%'
+            OR attendance.attendance_date LIKE '%$search%'
         )
         ORDER BY attendance.attendance_date DESC, attendance.id DESC
     ");
@@ -188,16 +186,14 @@ function formatTime($time) {
       </div>
 
       <div class="hero-actions">
+        <a href="addattendance.php" class="hero-btn primary-btn">
+          <i class="fas fa-plus"></i> Add Attendance
+        </a>
 
-    <a href="addattendance.php" class="hero-btn primary-btn">
-        <i class="fas fa-plus"></i> Add Attendance
-    </a>
-
-    <a href="attendance.php" class="hero-btn secondary-btn">
-        <i class="fas fa-rotate"></i> Refresh
-    </a>
-
-</div>
+        <a href="attendance.php" class="hero-btn secondary-btn">
+          <i class="fas fa-rotate"></i> Refresh
+        </a>
+      </div>
     </section>
 
     <section class="cards">
@@ -272,6 +268,8 @@ function formatTime($time) {
                       $class = "pending";
                       if ($row['status'] == "Present") $class = "approved";
                       if ($row['status'] == "Absent") $class = "rejected";
+                      if ($row['status'] == "Late") $class = "pending";
+                      if ($row['status'] == "On Leave") $class = "approved";
                     ?>
                     <span class="status <?php echo $class; ?>">
                       <?php echo htmlspecialchars($row['status']); ?>
