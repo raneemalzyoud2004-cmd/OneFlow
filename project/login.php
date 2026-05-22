@@ -47,7 +47,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
                 } else {
 
-                    if ($row['password'] === $password_input) {
+                   $storedPassword = $row['password'];
+
+$loginOk = false;
+
+/* bcrypt hash */
+if (password_verify($password_input, $storedPassword)) {
+    $loginOk = true;
+}
+/* sha256 hash */
+elseif (hash('sha256', $password_input) === $storedPassword) {
+    $loginOk = true;
+}
+/* plain text password */
+elseif ($storedPassword === $password_input) {
+    $loginOk = true;
+}
+
+if ($loginOk) {
 
                         $reset_sql = "UPDATE users SET failed_attempts = 0 WHERE id = ?";
                         $reset_stmt = mysqli_prepare($conn, $reset_sql);
