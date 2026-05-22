@@ -32,7 +32,22 @@ if ($birthdayResult && mysqli_num_rows($birthdayResult) > 0) {
     $birthdayNotification = mysqli_fetch_assoc($birthdayResult);
 }
 
-$notificationCount = $birthdayNotification ? 1 : 0;
+$notificationCountResult = mysqli_query($conn, "
+    SELECT COUNT(*) AS total
+    FROM notifications
+    WHERE user_id = $user_id
+    AND is_read = 0
+");
+
+$notificationCount = 0;
+
+if ($notificationCountResult) {
+    $notificationCount = (int) mysqli_fetch_assoc($notificationCountResult)['total'];
+}
+
+if ($birthdayNotification) {
+    $notificationCount++;
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -227,7 +242,7 @@ $notificationCount = $birthdayNotification ? 1 : 0;
     position:absolute;
     top:62px;
     right:0;
-    width:330px;
+    width:360px;
     background:white;
     border-radius:18px;
     padding:16px;
@@ -247,6 +262,14 @@ $notificationCount = $birthdayNotification ? 1 : 0;
     border-radius:14px;
     background:#f8fafc;
     border:1px solid #e2e8f0;
+    margin-bottom:10px;
+    cursor:pointer;
+    transition:.25s;
+}
+
+.notification-item:hover{
+    background:#eef8ff;
+    transform:translateY(-2px);
 }
 
 .notification-item h4{
@@ -258,6 +281,14 @@ $notificationCount = $birthdayNotification ? 1 : 0;
     color:#64748b;
     font-size:13px;
     line-height:1.5;
+}
+
+.notification-item small{
+    display:block;
+    margin-top:8px;
+    color:#94a3b8;
+    font-size:12px;
+    font-weight:700;
 }
 
 @media(max-width:1100px){
@@ -325,8 +356,9 @@ $notificationCount = $birthdayNotification ? 1 : 0;
         </div>
 
         <div class="notification-wrapper">
-            <div class="icon-btn notification-bell" onclick="toggleEmployeeNotifications()">
+            <div class="icon-btn notification-bell">
                 <i class="fas fa-bell"></i>
+
                 <?php if ($notificationCount > 0) { ?>
                     <span class="notif-count"><?php echo $notificationCount; ?></span>
                 <?php } ?>
@@ -334,19 +366,10 @@ $notificationCount = $birthdayNotification ? 1 : 0;
 
             <div class="employee-notification-dropdown" id="employeeNotificationDropdown">
                 <h3>Notifications</h3>
-
-                <?php if ($birthdayNotification) { ?>
-                    <div class="notification-item">
-                        <h4>🎉 Birthday Message</h4>
-                        <p><?php echo htmlspecialchars($birthdayNotification['birthday_message']); ?></p>
-                        <p><strong>Gift:</strong> $<?php echo number_format((float)$birthdayNotification['reward_amount'], 2); ?></p>
-                    </div>
-                <?php } else { ?>
-                    <div class="notification-item">
-                        <h4>No new updates</h4>
-                        <p>Your latest notifications will appear here.</p>
-                    </div>
-                <?php } ?>
+                <div class="notification-item">
+                    <h4>Loading...</h4>
+                    <p>Please wait while notifications load.</p>
+                </div>
             </div>
         </div>
 
@@ -367,7 +390,7 @@ $notificationCount = $birthdayNotification ? 1 : 0;
 <?php if ($birthdayNotification) { ?>
 <section class="birthday-employee-banner searchable-item">
     <div>
-        <h2>🎉 Happy Birthday, <?php echo htmlspecialchars($full_name); ?>!</h2>
+        <h2>Happy Birthday, <?php echo htmlspecialchars($full_name); ?>!</h2>
         <p><?php echo htmlspecialchars($birthdayNotification['birthday_message']); ?></p>
 
         <div class="birthday-gift-box">
@@ -377,15 +400,15 @@ $notificationCount = $birthdayNotification ? 1 : 0;
     </div>
 
     <div class="birthday-gift-icon">
-        🎁
+        <i class="fas fa-gift"></i>
     </div>
 </section>
 <?php } ?>
 
 <section class="hero-banner searchable-item">
     <div class="hero-text">
-        <h2>Welcome back, <?php echo htmlspecialchars($full_name); ?> 👋</h2>
-        <p>You have <strong>3 tasks</strong> to complete and <strong>1 meeting</strong> today.</p>
+        <h2>Welcome back, <?php echo htmlspecialchars($full_name); ?></h2>
+        <p>You can manage your tasks, leave requests, attendance, and notifications from one place.</p>
     </div>
 
     <div class="hero-actions">
@@ -474,7 +497,7 @@ $notificationCount = $birthdayNotification ? 1 : 0;
 
     <div class="employee-column">
         <div class="employee-note-card searchable-item">
-            <h2>Today’s Focus ✨</h2>
+            <h2>Today’s Focus</h2>
             <p>
                 Keep your task updates clear, check your attendance regularly,
                 and report any technical issue as soon as it appears.
@@ -503,15 +526,12 @@ $notificationCount = $birthdayNotification ? 1 : 0;
                     </div>
                 </div>
 
-                <?php if ($birthdayNotification) { ?>
+                <?php if ($notificationCount > 0) { ?>
                 <div class="employee-timeline-item searchable-item">
-                    <div class="timeline-icon"><i class="fas fa-cake-candles"></i></div>
+                    <div class="timeline-icon"><i class="fas fa-bell"></i></div>
                     <div>
-                        <h4>Birthday gift received</h4>
-                        <p>
-                            HR sent you a birthday message and a gift of
-                            $<?php echo number_format((float)$birthdayNotification['reward_amount'], 2); ?>.
-                        </p>
+                        <h4>New notifications available</h4>
+                        <p>You have <?php echo $notificationCount; ?> personal update(s) in your notification center.</p>
                     </div>
                 </div>
                 <?php } ?>
@@ -524,19 +544,96 @@ $notificationCount = $birthdayNotification ? 1 : 0;
 </div>
 
 <script>
-function toggleEmployeeNotifications() {
-    const dropdown = document.getElementById("employeeNotificationDropdown");
-    dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
-}
+const employeeBell = document.querySelector(".notification-bell");
+const employeeDropdown = document.getElementById("employeeNotificationDropdown");
 
-document.addEventListener("click", function(e) {
-    const dropdown = document.getElementById("employeeNotificationDropdown");
-    const bell = document.querySelector(".notification-bell");
+employeeBell.addEventListener("click", function(e){
+    e.stopPropagation();
 
-    if (dropdown && bell && !dropdown.contains(e.target) && !bell.contains(e.target)) {
-        dropdown.style.display = "none";
+    if(employeeDropdown.style.display === "block"){
+        employeeDropdown.style.display = "none";
+    }else{
+        employeeDropdown.style.display = "block";
     }
 });
+
+employeeDropdown.addEventListener("click", function(e){
+    e.stopPropagation();
+});
+
+document.addEventListener("click", function(){
+    employeeDropdown.style.display = "none";
+});
+
+function updateEmployeeNotifications(){
+    fetch("get_notifications.php")
+    .then(response => response.json())
+    .then(data => {
+        if(!data.success) return;
+
+        let badge = document.querySelector(".notification-bell .notif-count");
+
+        if(data.count > 0){
+            if(badge){
+                badge.textContent = data.count;
+            }else{
+                const span = document.createElement("span");
+                span.className = "notif-count";
+                span.textContent = data.count;
+                employeeBell.appendChild(span);
+            }
+        }else{
+            if(badge){
+                badge.remove();
+            }
+        }
+
+        employeeDropdown.innerHTML = `
+            <h3>Notifications</h3>
+        `;
+
+        if(data.notifications.length === 0){
+            employeeDropdown.innerHTML += `
+                <div class="notification-item">
+                    <h4>No notifications yet</h4>
+                    <p>Your latest updates will appear here.</p>
+                </div>
+            `;
+
+            return;
+        }
+
+        data.notifications.forEach(notification => {
+            let targetPage = "notificationsemployee.php";
+
+            if(notification.title.toLowerCase().includes("task")){
+                targetPage = "mytasks.php";
+            }
+
+            if(notification.title.toLowerCase().includes("leave")){
+                targetPage = "leaverequests_employee.php";
+            }
+
+            const item = document.createElement("div");
+            item.className = "notification-item";
+
+            item.innerHTML = `
+                <h4>${notification.title}</h4>
+                <p>${notification.message}</p>
+                <small>${notification.created_at}</small>
+            `;
+
+            item.addEventListener("click", function(){
+                window.location.href = targetPage;
+            });
+
+            employeeDropdown.appendChild(item);
+        });
+    });
+}
+
+updateEmployeeNotifications();
+setInterval(updateEmployeeNotifications, 5000);
 
 document.addEventListener("DOMContentLoaded", function () {
     const searchInput = document.getElementById("employeeSearch");

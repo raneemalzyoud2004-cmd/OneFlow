@@ -1,6 +1,7 @@
 <?php
 session_start();
 include "config.php";
+include "notification_helper.php";
 
 header("Cache-Control: no-cache, no-store, must-revalidate");
 header("Pragma: no-cache");
@@ -18,13 +19,43 @@ if (isset($_POST['update_status'])) {
     $requestId = intval($_POST['request_id']);
     $newStatus = mysqli_real_escape_string($conn, $_POST['status']);
 
-    mysqli_query($conn, "
-        UPDATE leave_requests 
-        SET status='$newStatus' 
-        WHERE id=$requestId
+    $requestQuery = mysqli_query($conn, "
+        SELECT employee_id, employee_name
+        FROM leave_requests
+        WHERE id = $requestId
     ");
 
-    $successMessage = "Leave request updated successfully.";
+    if ($requestQuery && mysqli_num_rows($requestQuery) > 0) {
+        $requestData = mysqli_fetch_assoc($requestQuery);
+
+        $employeeId = $requestData['employee_id'];
+
+        mysqli_query($conn, "
+            UPDATE leave_requests 
+            SET status='$newStatus' 
+            WHERE id=$requestId
+        ");
+
+        if ($newStatus == "Approved") {
+            addNotification(
+                $conn,
+                $employeeId,
+                "Leave Approved",
+                "Your leave request has been approved by HR.",
+                "success"
+            );
+        } else {
+            addNotification(
+                $conn,
+                $employeeId,
+                "Leave Rejected",
+                "Your leave request has been rejected by HR.",
+                "danger"
+            );
+        }
+
+        $successMessage = "Leave request updated successfully.";
+    }
 }
 
 $pendingCount = 0;

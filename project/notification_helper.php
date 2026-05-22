@@ -1,20 +1,15 @@
 <?php
-function addNotification($conn, $user_id, $role, $title, $message, $type = 'info') {
 
+function addNotification($conn, $user_id, $title, $message, $type = 'info')
+{
     $stmt = $conn->prepare("
-        INSERT INTO notifications (user_id, role, title, message, type)
-        VALUES (?, ?, ?, ?, ?)
+        INSERT INTO notifications
+        (user_id, title, message, type, is_read, created_at)
+        VALUES (?, ?, ?, ?, 0, NOW())
     ");
 
-    $stmt->bind_param(
-        "issss",
-        $user_id,
-        $role,
-        $title,
-        $message,
-        $type
-    );
+    $stmt->bind_param("isss", $user_id, $title, $message, $type);
 
-    return $stmt->execute();
+    $stmt->execute();
 }
 ?>

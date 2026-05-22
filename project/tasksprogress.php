@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once 'config.php';
+require_once 'notification_helper.php';
 
 header("Cache-Control: no-cache, no-store, must-revalidate");
 header("Pragma: no-cache");
@@ -17,6 +18,18 @@ $first_letter = strtoupper(substr(trim($full_name), 0, 1));
 
 $success_message = '';
 $error_message = '';
+
+$notificationCountResult = mysqli_query($conn, "
+    SELECT COUNT(*) AS total
+    FROM notifications
+    WHERE user_id = $leader_id
+");
+
+$notificationCount = 0;
+
+if ($notificationCountResult) {
+    $notificationCount = (int) mysqli_fetch_assoc($notificationCountResult)['total'];
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ticket_id = (int) ($_POST['ticket_id'] ?? 0);
@@ -49,7 +62,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         INSERT INTO ticket_appreciation_messages (ticket_id, employee_id, leader_id, message)
                         VALUES ($ticket_id, $employee_id, $leader_id, '$safeMessage')
                     ");
+
+                    addNotification(
+                        $conn,
+                        $employee_id,
+                        "Task Approved",
+                        "Your submitted task has been approved by $full_name.",
+                        "success"
+                    );
+
+                    addNotification(
+                        $conn,
+                        $leader_id,
+                        "Task Completed",
+                        "You approved a submitted task successfully.",
+                        "info"
+                    );
+
                     $success_message = "Ticket approved and appreciation message sent successfully.";
+                    $notificationCount++;
                 } else {
                     $error_message = "Failed to approve the ticket.";
                 }
@@ -70,7 +101,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ");
 
                     if ($updateTicket) {
+                        addNotification(
+                            $conn,
+                            $employee_id,
+                            "Task Returned For Revision",
+                            "Your submitted task needs revision. Please review the feedback from your team leader.",
+                            "warning"
+                        );
+
+                        addNotification(
+                            $conn,
+                            $leader_id,
+                            "Task Returned",
+                            "You returned a submitted task for revision.",
+                            "info"
+                        );
+
                         $success_message = "Ticket returned to the employee for revision.";
+                        $notificationCount++;
                     } else {
                         $error_message = "Failed to return the ticket.";
                     }
@@ -409,6 +457,10 @@ function formatStatusLabel($status)
       text-align: center;
     }
 
+    .notification-bell {
+      text-decoration: none;
+    }
+
     @media (max-width: 1200px) {
       .board-grid,
       .progress-stats {
@@ -464,10 +516,12 @@ function formatStatusLabel($status)
           <input type="text" placeholder="Search task status, member, deadline..." disabled>
         </div>
 
-        <div class="icon-btn notification-bell">
+        <a href="notificationsteamleader.php" class="icon-btn notification-bell">
           <i class="fas fa-bell"></i>
-          <span class="notif-count">4</span>
-        </div>
+          <?php if ($notificationCount > 0) { ?>
+            <span class="notif-count"><?php echo $notificationCount; ?></span>
+          <?php } ?>
+        </a>
 
         <div class="admin-profile">
           <div class="admin-avatar">

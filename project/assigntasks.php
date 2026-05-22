@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once 'config.php';
+require_once 'notification_helper.php';
 
 header("Cache-Control: no-cache, no-store, must-revalidate");
 header("Pragma: no-cache");
@@ -17,6 +18,18 @@ $first_letter = strtoupper(substr(trim($full_name), 0, 1));
 
 $success_message = '';
 $error_message = '';
+
+$notificationCountResult = mysqli_query($conn, "
+    SELECT COUNT(*) AS total 
+    FROM notifications 
+    WHERE user_id = $leader_id
+");
+
+$notificationCount = 0;
+
+if ($notificationCountResult) {
+    $notificationCount = (int) mysqli_fetch_assoc($notificationCountResult)['total'];
+}
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['assign_ticket'])) {
     $title = trim($_POST['title'] ?? '');
@@ -37,6 +50,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['assign_ticket'])) {
         if (!$checkEmployee || mysqli_num_rows($checkEmployee) === 0) {
             $error_message = "Selected employee was not found.";
         } else {
+            $employeeData = mysqli_fetch_assoc($checkEmployee);
+            $employeeName = $employeeData['full_name'];
+
             $safe_title = mysqli_real_escape_string($conn, $title);
             $safe_description = mysqli_real_escape_string($conn, $description);
             $safe_priority = mysqli_real_escape_string($conn, $priority);
@@ -53,7 +69,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['assign_ticket'])) {
             ";
 
             if (mysqli_query($conn, $insertQuery)) {
+                addNotification(
+                    $conn,
+                    $assigned_to,
+                    "New Task Assigned",
+                    "A new task has been assigned to you by $full_name: $title",
+                    "info"
+                );
+
+                addNotification(
+                    $conn,
+                    $leader_id,
+                    "Task Assigned Successfully",
+                    "You assigned '$title' to $employeeName.",
+                    "success"
+                );
+
                 $success_message = "Ticket assigned successfully.";
+                $notificationCount++;
             } else {
                 $error_message = "Failed to assign ticket: " . mysqli_error($conn);
             }
@@ -63,6 +96,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['assign_ticket'])) {
 
 $employees = [];
 $employeesQuery = mysqli_query($conn, "SELECT id, full_name FROM users WHERE role = 'employee' ORDER BY full_name ASC");
+
 if ($employeesQuery) {
     while ($row = mysqli_fetch_assoc($employeesQuery)) {
         $employees[] = $row;
@@ -78,6 +112,7 @@ $recentTicketsQuery = mysqli_query($conn, "
     ORDER BY tt.created_at DESC
     LIMIT 6
 ");
+
 if ($recentTicketsQuery) {
     while ($row = mysqli_fetch_assoc($recentTicketsQuery)) {
         $recentTickets[] = $row;
@@ -89,9 +124,11 @@ function priorityBadgeClass($priority)
     if ($priority === 'high') {
         return 'high-badge';
     }
+
     if ($priority === 'medium') {
         return 'medium-badge';
     }
+
     return 'low-badge';
 }
 ?>
@@ -303,6 +340,10 @@ function priorityBadgeClass($priority)
       text-align: center;
     }
 
+    .notification-bell {
+      text-decoration: none;
+    }
+
     @media (max-width: 1100px) {
       .assign-layout {
         grid-template-columns: 1fr;
@@ -363,10 +404,12 @@ function priorityBadgeClass($priority)
           <input type="text" placeholder="Search task, member, deadline..." disabled>
         </div>
 
-        <div class="icon-btn notification-bell">
+        <a href="notificationsteamleader.php" class="icon-btn notification-bell">
           <i class="fas fa-bell"></i>
-          <span class="notif-count">4</span>
-        </div>
+          <?php if ($notificationCount > 0) { ?>
+            <span class="notif-count"><?php echo $notificationCount; ?></span>
+          <?php } ?>
+        </a>
 
         <div class="admin-profile">
           <div class="admin-avatar">
@@ -384,7 +427,7 @@ function priorityBadgeClass($priority)
 
     <section class="hero-banner">
       <div class="hero-text">
-        <h2>Create a team ticket quickly ✅</h2>
+        <h2>Create a team ticket quickly</h2>
         <p>Assign work with title, details, priority, and deadline so employees can start immediately.</p>
       </div>
 

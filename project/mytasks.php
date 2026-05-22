@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once 'config.php';
+require_once 'notification_helper.php';
 
 header("Cache-Control: no-cache, no-store, must-revalidate");
 header("Pragma: no-cache");
@@ -18,6 +19,19 @@ $first_letter = strtoupper(substr(trim($full_name), 0, 1));
 $success_message = '';
 $error_message = '';
 
+$notificationCountResult = mysqli_query($conn, "
+    SELECT COUNT(*) AS total
+    FROM notifications
+    WHERE user_id = $employee_id
+    AND is_read = 0
+");
+
+$notificationCount = 0;
+
+if ($notificationCountResult) {
+    $notificationCount = (int) mysqli_fetch_assoc($notificationCountResult)['total'];
+}
+
 $upload_dir = __DIR__ . '/uploads/';
 $upload_url = 'uploads/';
 
@@ -30,7 +44,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($ticket_id > 0) {
         $ticketCheck = mysqli_query($conn, "
-            SELECT id, status, attachment_name, attachment_path
+            SELECT id, title, status, assigned_by, attachment_name, attachment_path
             FROM team_tickets
             WHERE id = $ticket_id AND assigned_to = $employee_id
             LIMIT 1
@@ -38,6 +52,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         if ($ticketCheck && mysqli_num_rows($ticketCheck) === 1) {
             $ticketData = mysqli_fetch_assoc($ticketCheck);
+            $leader_id = (int) $ticketData['assigned_by'];
+            $task_title = $ticketData['title'];
 
             if (isset($_POST['start_task'])) {
                 if ($ticketData['status'] === 'pending' || $ticketData['status'] === 'revision_required') {
@@ -48,6 +64,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     ");
 
                     if ($updateQuery) {
+                        addNotification(
+                            $conn,
+                            $leader_id,
+                            "Task Started",
+                            "$full_name started working on: $task_title",
+                            "info"
+                        );
+
                         $success_message = "Task started successfully.";
                     } else {
                         $error_message = "Failed to start the task.";
@@ -75,12 +99,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             $error_message = "File upload failed. Please try again.";
                         } else {
                             $original_name = basename($file['name']);
-$file_extension = strtolower(pathinfo($original_name, PATHINFO_EXTENSION));
-$file_size = (int) $file['size'];
+                            $file_extension = strtolower(pathinfo($original_name, PATHINFO_EXTENSION));
+                            $file_size = (int) $file['size'];
 
-if ($file_size > 20 * 1024 * 1024) {
-    $error_message = "File size must be 20MB or less.";
-} else {
+                            if ($file_size > 20 * 1024 * 1024) {
+                                $error_message = "File size must be 20MB or less.";
+                            } else {
                                 $new_file_name = 'task_' . $ticket_id . '_' . time() . '.' . $file_extension;
                                 $destination = $upload_dir . $new_file_name;
 
@@ -105,6 +129,14 @@ if ($file_size > 20 * 1024 * 1024) {
                         ");
 
                         if ($updateQuery) {
+                            addNotification(
+                                $conn,
+                                $leader_id,
+                                "Task Submitted",
+                                "$full_name submitted the task: $task_title",
+                                "success"
+                            );
+
                             $success_message = "Task submitted to the team leader successfully.";
                         } else {
                             $error_message = "Failed to submit the task.";
@@ -165,6 +197,7 @@ foreach ($tasks as $task) {
     if ($task['status'] === 'in_progress' || $task['status'] === 'submitted' || $task['status'] === 'revision_required') {
         $inProgressCount++;
     }
+
     if ($task['status'] === 'completed') {
         $completedCount++;
     }
@@ -180,9 +213,11 @@ function statusClass($status)
     if ($status === 'completed') {
         return 'approved';
     }
+
     if ($status === 'pending' || $status === 'revision_required') {
         return 'rejected';
     }
+
     return 'pending';
 }
 ?>
@@ -341,26 +376,36 @@ function statusClass($status)
       margin-bottom: 12px;
     }
 
-    .custom-file-label {
-      display: inline-flex;
-      align-items: center;
-      gap: 10px;
+    .drag-drop-box {
       background: #f0fdfa;
       color: #0f766e;
       border: 1px dashed #14b8a6;
       border-radius: 14px;
-      padding: 12px 16px;
+      padding: 18px;
       cursor: pointer;
       font-weight: 700;
       transition: 0.3s;
+      text-align: center;
     }
 
-    .custom-file-label:hover {
-      background: #ccfbf1;
+    .drag-drop-box i {
+      font-size: 24px;
+      margin-bottom: 8px;
+      display: block;
     }
 
-    .custom-file-label input[type="file"] {
-      display: none;
+    .selected-file-name {
+      margin-top: 8px;
+      color: #64748b;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .file-preview img {
+      margin-top: 12px;
+      max-width: 160px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
     }
 
     .task-actions {
@@ -414,6 +459,10 @@ function statusClass($status)
       color: #64748b;
       border: 1px dashed #dbe4ee;
     }
+
+    .notification-bell {
+      text-decoration: none;
+    }
   </style>
 </head>
 <body>
@@ -438,7 +487,7 @@ function statusClass($status)
       <li><a href="notificationsemployee.php"><i class="fas fa-bell"></i> Notifications</a></li>
       <li><a href="report_issue.php"><i class="fas fa-headset"></i> Report Issue</a></li>
       <li><a href="settingsemployee.php"><i class="fas fa-gear"></i> Settings</a></li>
-
+    </ul>
 
     <div class="sidebar-bottom">
       <div class="system-card">
@@ -462,15 +511,19 @@ function statusClass($status)
           <input type="text" placeholder="Search tasks..." disabled>
         </div>
 
-        <div class="icon-btn notification-bell">
+        <a href="notificationsemployee.php" class="icon-btn notification-bell">
           <i class="fas fa-bell"></i>
-          <span class="notif-count">2</span>
-        </div>
+          <?php if ($notificationCount > 0) { ?>
+            <span class="notif-count"><?php echo $notificationCount; ?></span>
+          <?php } ?>
+        </a>
 
-        <div class="admin-avatar"><?php echo htmlspecialchars($first_letter); ?></div>
-        <div>
-          <h4><?php echo htmlspecialchars($full_name); ?></h4>
-          <span>Employee</span>
+        <div class="admin-profile">
+          <div class="admin-avatar"><?php echo htmlspecialchars($first_letter); ?></div>
+          <div>
+            <h4><?php echo htmlspecialchars($full_name); ?></h4>
+            <span>Employee</span>
+          </div>
         </div>
 
         <a href="logout.php" class="logout-btn">Logout</a>
@@ -591,19 +644,17 @@ function statusClass($status)
 
                   <textarea name="employee_response" placeholder="Write your completed work, explanation, or final solution here..."><?php echo htmlspecialchars($task['employee_response'] ?? ''); ?></textarea>
 
-               <div class="file-upload-area">
+                  <div class="file-upload-area">
+                    <div class="drag-drop-box">
+                      <i class="fas fa-cloud-upload-alt"></i>
+                      <p>Drag & Drop file here or click to upload</p>
+                      <input type="file" name="task_file" hidden>
+                    </div>
 
-  <div class="drag-drop-box" id="dropArea">
-    <i class="fas fa-cloud-upload-alt"></i>
-    <p>Drag & Drop file here or click to upload</p>
-    <input type="file" name="task_file" id="fileInput" hidden>
-  </div>
+                    <div class="selected-file-name">No file selected</div>
+                    <div class="file-preview"></div>
+                  </div>
 
-  <div class="selected-file-name">No file selected</div>
-
-  <div class="file-preview" id="filePreview"></div>
-
-</div>
                   <div class="task-actions">
                     <button type="submit" name="submit_task" class="small-btn submit-btn">
                       <i class="fas fa-paper-plane"></i> Submit to Team Leader
@@ -618,60 +669,55 @@ function statusClass($status)
     </section>
   </main>
 </div>
-<script>
-function showSelectedFileName(input) {
-  const fileNameBox = input.closest('.file-upload-area').querySelector('.selected-file-name');
 
-  if (input.files.length > 0) {
-    fileNameBox.textContent = input.files[0].name;
-  } else {
-    fileNameBox.textContent = "No file selected";
-  }
+<script>
+document.querySelectorAll(".file-upload-area").forEach(function(area) {
+    const dropArea = area.querySelector(".drag-drop-box");
+    const fileInput = area.querySelector('input[type="file"]');
+    const fileNameBox = area.querySelector(".selected-file-name");
+    const previewBox = area.querySelector(".file-preview");
+
+    dropArea.addEventListener("click", function() {
+        fileInput.click();
+    });
+
+    dropArea.addEventListener("dragover", function(e) {
+        e.preventDefault();
+        dropArea.style.background = "#ccfbf1";
+    });
+
+    dropArea.addEventListener("dragleave", function() {
+        dropArea.style.background = "#f0fdfa";
+    });
+
+    dropArea.addEventListener("drop", function(e) {
+        e.preventDefault();
+        fileInput.files = e.dataTransfer.files;
+        handleFile(fileInput.files[0], fileNameBox, previewBox);
+    });
+
+    fileInput.addEventListener("change", function() {
+        handleFile(fileInput.files[0], fileNameBox, previewBox);
+    });
+});
+
+function handleFile(file, fileNameBox, previewBox) {
+    if (!file) return;
+
+    fileNameBox.textContent = file.name;
+    previewBox.innerHTML = "";
+
+    if (file.type.startsWith("image/")) {
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            previewBox.innerHTML = '<img src="' + e.target.result + '" />';
+        };
+
+        reader.readAsDataURL(file);
+    }
 }
 </script>
-<script>
-const dropArea = document.getElementById("dropArea");
-const fileInput = document.getElementById("fileInput");
-const fileNameBox = document.querySelector(".selected-file-name");
-const previewBox = document.getElementById("filePreview");
-
-dropArea.addEventListener("click", () => fileInput.click());
-
-dropArea.addEventListener("dragover", (e) => {
-  e.preventDefault();
-  dropArea.style.background = "#ccfbf1";
-});
-
-dropArea.addEventListener("dragleave", () => {
-  dropArea.style.background = "#f0fdfa";
-});
-
-dropArea.addEventListener("drop", (e) => {
-  e.preventDefault();
-  fileInput.files = e.dataTransfer.files;
-  handleFile(fileInput.files[0]);
-});
-
-fileInput.addEventListener("change", () => {
-  handleFile(fileInput.files[0]);
-});
-
-function handleFile(file) {
-  if (!file) return;
-
-  fileNameBox.textContent = file.name;
-  previewBox.innerHTML = "";
-
-  if (file.type.startsWith("image/")) {
-    const reader = new FileReader();
-    reader.onload = function (e) {
-      previewBox.innerHTML = '<img src="' + e.target.result + '" />';
-    };
-    reader.readAsDataURL(file);
-  }
-}
-</script>
-
 
 </body>
 </html>
