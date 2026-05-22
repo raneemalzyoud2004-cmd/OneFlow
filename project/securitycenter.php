@@ -141,7 +141,9 @@ $riskyUsersResult = mysqli_query($conn, $riskyUsersQuery);
             </div>
           </div>
 
-          <a href="dashboardadmin.php" class="logout-btn" style="text-decoration:none;">Back to Dashboard</a>
+          <a href="logout.php" class="back-btn logout-btn">
+    <i class="fas fa-sign-out-alt"></i> Logout
+</a>
         </div>
       </header>
 
