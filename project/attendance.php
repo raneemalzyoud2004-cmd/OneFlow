@@ -188,10 +188,16 @@ function formatTime($time) {
       </div>
 
       <div class="hero-actions">
-        <a href="attendance.php" class="hero-btn secondary-btn">
-          <i class="fas fa-rotate"></i> Refresh
-        </a>
-      </div>
+
+    <a href="addattendance.php" class="hero-btn primary-btn">
+        <i class="fas fa-plus"></i> Add Attendance
+    </a>
+
+    <a href="attendance.php" class="hero-btn secondary-btn">
+        <i class="fas fa-rotate"></i> Refresh
+    </a>
+
+</div>
     </section>
 
     <section class="cards">

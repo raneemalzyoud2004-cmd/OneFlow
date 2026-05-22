@@ -11,8 +11,9 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'employee') {
     exit();
 }
 
-$user_id = $_SESSION['user_id'];
+$user_id = (int)$_SESSION['user_id'];
 $full_name = $_SESSION['full_name'];
+$errorMessage = "";
 
 mysqli_query($conn, "
     CREATE TABLE IF NOT EXISTS schedule (
@@ -37,13 +38,17 @@ if (isset($_POST['add_schedule'])) {
     $start_time = mysqli_real_escape_string($conn, $_POST['start_time']);
     $end_time = mysqli_real_escape_string($conn, $_POST['end_time']);
 
-    mysqli_query($conn, "
-        INSERT INTO schedule (user_id, title, type, start_time, end_time, status)
-        VALUES ('$user_id', '$title', '$type', '$start_time', '$end_time', 'Pending')
-    ");
+    if (strtotime($end_time) <= strtotime($start_time)) {
+        $errorMessage = "End time must be after start time.";
+    } else {
+        mysqli_query($conn, "
+            INSERT INTO schedule (user_id, title, type, start_time, end_time, status)
+            VALUES ('$user_id', '$title', '$type', '$start_time', '$end_time', 'Pending')
+        ");
 
-    header("Location: myschedule.php");
-    exit();
+        header("Location: myschedule.php");
+        exit();
+    }
 }
 
 if (isset($_POST['update_schedule'])) {
@@ -53,18 +58,22 @@ if (isset($_POST['update_schedule'])) {
     $start_time = mysqli_real_escape_string($conn, $_POST['start_time']);
     $end_time = mysqli_real_escape_string($conn, $_POST['end_time']);
 
-    mysqli_query($conn, "
-        UPDATE schedule
-        SET title='$title',
-            type='$type',
-            start_time='$start_time',
-            end_time='$end_time'
-        WHERE id='$id'
-        AND user_id='$user_id'
-    ");
+    if (strtotime($end_time) <= strtotime($start_time)) {
+        $errorMessage = "End time must be after start time.";
+    } else {
+        mysqli_query($conn, "
+            UPDATE schedule
+            SET title='$title',
+                type='$type',
+                start_time='$start_time',
+                end_time='$end_time'
+            WHERE id='$id'
+            AND user_id='$user_id'
+        ");
 
-    header("Location: myschedule.php");
-    exit();
+        header("Location: myschedule.php");
+        exit();
+    }
 }
 
 if (isset($_GET['delete'])) {
@@ -96,9 +105,11 @@ if (isset($_GET['done'])) {
 
 $meetingsToday = 0;
 $workSessions = 0;
+$completedToday = 0;
+$upcomingToday = 0;
 $nextMeeting = "No Meeting";
 
-$meetingsTodayQuery = mysqli_query($conn, "
+$result = mysqli_query($conn, "
     SELECT COUNT(*) AS total
     FROM schedule
     WHERE user_id='$user_id'
@@ -106,26 +117,37 @@ $meetingsTodayQuery = mysqli_query($conn, "
     AND status!='Done'
     AND DATE(start_time)='$today'
 ");
+if ($result) $meetingsToday = mysqli_fetch_assoc($result)['total'];
 
-if ($meetingsTodayQuery) {
-    $meetingsTodayRow = mysqli_fetch_assoc($meetingsTodayQuery);
-    $meetingsToday = $meetingsTodayRow['total'];
-}
-
-$workSessionsQuery = mysqli_query($conn, "
+$result = mysqli_query($conn, "
     SELECT COUNT(*) AS total
     FROM schedule
     WHERE user_id='$user_id'
     AND type='Work'
     AND start_time BETWEEN '$weekStart' AND '$weekEnd'
 ");
+if ($result) $workSessions = mysqli_fetch_assoc($result)['total'];
 
-if ($workSessionsQuery) {
-    $workSessionsRow = mysqli_fetch_assoc($workSessionsQuery);
-    $workSessions = $workSessionsRow['total'];
-}
+$result = mysqli_query($conn, "
+    SELECT COUNT(*) AS total
+    FROM schedule
+    WHERE user_id='$user_id'
+    AND status='Done'
+    AND DATE(start_time)='$today'
+");
+if ($result) $completedToday = mysqli_fetch_assoc($result)['total'];
 
-$nextMeetingQuery = mysqli_query($conn, "
+$result = mysqli_query($conn, "
+    SELECT COUNT(*) AS total
+    FROM schedule
+    WHERE user_id='$user_id'
+    AND status!='Done'
+    AND start_time >= NOW()
+    AND DATE(start_time)='$today'
+");
+if ($result) $upcomingToday = mysqli_fetch_assoc($result)['total'];
+
+$result = mysqli_query($conn, "
     SELECT start_time
     FROM schedule
     WHERE user_id='$user_id'
@@ -135,9 +157,8 @@ $nextMeetingQuery = mysqli_query($conn, "
     ORDER BY start_time ASC
     LIMIT 1
 ");
-
-if ($nextMeetingQuery && mysqli_num_rows($nextMeetingQuery) > 0) {
-    $nextMeetingRow = mysqli_fetch_assoc($nextMeetingQuery);
+if ($result && mysqli_num_rows($result) > 0) {
+    $nextMeetingRow = mysqli_fetch_assoc($result);
     $nextMeeting = date("h:i A", strtotime($nextMeetingRow['start_time']));
 }
 
@@ -145,6 +166,14 @@ $scheduleQuery = mysqli_query($conn, "
     SELECT *
     FROM schedule
     WHERE user_id='$user_id'
+    ORDER BY start_time ASC
+");
+
+$todayScheduleQuery = mysqli_query($conn, "
+    SELECT *
+    FROM schedule
+    WHERE user_id='$user_id'
+    AND DATE(start_time)='$today'
     ORDER BY start_time ASC
 ");
 ?>
@@ -161,6 +190,115 @@ $scheduleQuery = mysqli_query($conn, "
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
+.schedule-message {
+    padding: 14px 18px;
+    border-radius: 16px;
+    margin-bottom: 18px;
+    font-weight: 800;
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.schedule-hero {
+    background: linear-gradient(135deg, #0D1E4C, #14b8a6);
+    color: white;
+    border-radius: 28px;
+    padding: 30px;
+    margin-bottom: 26px;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+}
+
+.schedule-hero h2 {
+    font-size: 32px;
+    margin-bottom: 10px;
+}
+
+.schedule-hero p {
+    opacity: 0.92;
+    line-height: 1.7;
+}
+
+.schedule-hero-icon {
+    width: 88px;
+    height: 88px;
+    border-radius: 28px;
+    background: rgba(255,255,255,0.16);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 38px;
+    flex-shrink: 0;
+}
+
+.schedule-grid {
+    display: grid;
+    grid-template-columns: 1.25fr 1fr;
+    gap: 24px;
+    margin-top: 28px;
+}
+
+.schedule-column {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.today-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.timeline-item {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 16px;
+    border-radius: 20px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+}
+
+.timeline-icon {
+    width: 46px;
+    height: 46px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #0ea5a4, #14b8a6);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.timeline-item h4 {
+    color: #0D1E4C;
+    margin-bottom: 5px;
+}
+
+.timeline-item p {
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.type-pill {
+    padding: 7px 12px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    display: inline-block;
+}
+
+.type-meeting { background: #dbeafe; color: #1d4ed8; }
+.type-work { background: #dcfce7; color: #166534; }
+.type-training { background: #f3e8ff; color: #7e22ce; }
+.type-break { background: #ffedd5; color: #c2410c; }
+
 .action-btns {
     display: flex;
     gap: 8px;
@@ -178,17 +316,9 @@ $scheduleQuery = mysqli_query($conn, "
     display: inline-block;
 }
 
-.edit-btn {
-    background: #0D1E4C;
-}
-
-.delete-btn {
-    background: #d9534f;
-}
-
-.done-btn {
-    background: #14b8a6;
-}
+.edit-btn { background: #0D1E4C; }
+.delete-btn { background: #dc2626; }
+.done-btn { background: #14b8a6; }
 
 .add-btn {
     background: #14b8a6;
@@ -212,7 +342,7 @@ $scheduleQuery = mysqli_query($conn, "
 }
 
 .modal-content {
-    width: 480px;
+    width: 500px;
     max-width: 100%;
     background: white;
     padding: 30px;
@@ -252,13 +382,8 @@ $scheduleQuery = mysqli_query($conn, "
     margin-top: 20px;
 }
 
-.save-btn {
-    background: #14b8a6;
-}
-
-.close-btn {
-    background: #6b7280;
-}
+.save-btn { background: #14b8a6; }
+.close-btn { background: #6b7280; }
 
 .schedule-empty {
     text-align: center;
@@ -267,29 +392,37 @@ $scheduleQuery = mysqli_query($conn, "
     padding: 22px;
 }
 
-.topbar-user {
+.schedule-filter-row {
     display: flex;
-    align-items: center;
     gap: 12px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
 }
 
-.schedule-hero {
-    background: linear-gradient(135deg, #0D1E4C, #14b8a6);
+.filter-chip {
+    border: none;
+    padding: 10px 14px;
+    border-radius: 999px;
+    font-weight: 800;
+    cursor: pointer;
+    background: #e2e8f0;
+    color: #0D1E4C;
+}
+
+.filter-chip.active {
+    background: linear-gradient(90deg,#0ea5a4,#14b8a6);
     color: white;
-    border-radius: 26px;
-    padding: 28px;
-    margin-bottom: 26px;
-    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
 }
 
-.schedule-hero h2 {
-    font-size: 30px;
-    margin-bottom: 8px;
-}
+@media(max-width: 1100px) {
+    .schedule-grid {
+        grid-template-columns: 1fr;
+    }
 
-.schedule-hero p {
-    opacity: 0.92;
-    line-height: 1.7;
+    .schedule-hero {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 }
 
 @media(max-width: 800px) {
@@ -311,7 +444,6 @@ $scheduleQuery = mysqli_query($conn, "
             <i class="fa-solid fa-leaf"></i>
             <h2>OneFlow</h2>
         </div>
-
         <p class="admin-role">Employee Panel</p>
     </div>
 
@@ -339,22 +471,20 @@ $scheduleQuery = mysqli_query($conn, "
 <main class="main-content">
 
 <header class="topbar">
-
     <div class="topbar-left">
         <h1>My Schedule</h1>
         <p>Stay updated with your meetings, work plan, and important times.</p>
     </div>
 
     <div class="topbar-right">
-
         <div class="search-box">
             <i class="fas fa-search"></i>
-            <input type="text" placeholder="Search schedule...">
+            <input type="text" id="scheduleSearch" placeholder="Search schedule...">
         </div>
 
         <div class="icon-btn notification-bell">
             <i class="fas fa-bell"></i>
-            <span class="notif-count">3</span>
+            <span class="notif-count"><?php echo $upcomingToday; ?></span>
         </div>
 
         <div class="admin-profile">
@@ -368,27 +498,31 @@ $scheduleQuery = mysqli_query($conn, "
         </div>
 
         <a href="logout.php" class="logout-btn">Logout</a>
-
     </div>
-
 </header>
 
-<section class="schedule-hero">
-    <h2>Today’s Schedule Planner ⏰</h2>
-    <p>
-        You have <strong><?php echo $meetingsToday; ?></strong> meeting(s) today,
-        <strong><?php echo $workSessions; ?></strong> work session(s) this week,
-        and your next meeting is at <strong><?php echo $nextMeeting; ?></strong>.
-    </p>
+<?php if (!empty($errorMessage)) { ?>
+    <div class="schedule-message"><?php echo htmlspecialchars($errorMessage); ?></div>
+<?php } ?>
+
+<section class="schedule-hero searchable-item">
+    <div>
+        <h2>Today’s Schedule Planner ⏰</h2>
+        <p>
+            You have <strong><?php echo $meetingsToday; ?></strong> meeting(s) today,
+            <strong><?php echo $workSessions; ?></strong> work session(s) this week,
+            and your next meeting is at <strong><?php echo $nextMeeting; ?></strong>.
+        </p>
+    </div>
+
+    <div class="schedule-hero-icon">
+        <i class="fas fa-calendar-days"></i>
+    </div>
 </section>
 
 <section class="cards">
-
-    <div class="card">
-        <div class="card-icon">
-            <i class="fas fa-calendar-day"></i>
-        </div>
-
+    <div class="card searchable-item">
+        <div class="card-icon"><i class="fas fa-calendar-day"></i></div>
         <div class="card-info">
             <h3><?php echo $meetingsToday; ?></h3>
             <p>Meetings Today</p>
@@ -396,11 +530,8 @@ $scheduleQuery = mysqli_query($conn, "
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-icon">
-            <i class="fas fa-business-time"></i>
-        </div>
-
+    <div class="card searchable-item">
+        <div class="card-icon"><i class="fas fa-business-time"></i></div>
         <div class="card-info">
             <h3><?php echo $workSessions; ?></h3>
             <p>Work Sessions</p>
@@ -408,11 +539,8 @@ $scheduleQuery = mysqli_query($conn, "
         </div>
     </div>
 
-    <div class="card">
-        <div class="card-icon">
-            <i class="fas fa-clock"></i>
-        </div>
-
+    <div class="card searchable-item">
+        <div class="card-icon"><i class="fas fa-clock"></i></div>
         <div class="card-info">
             <h3><?php echo $nextMeeting; ?></h3>
             <p>Next Meeting</p>
@@ -420,150 +548,201 @@ $scheduleQuery = mysqli_query($conn, "
         </div>
     </div>
 
+    <div class="card searchable-item">
+        <div class="card-icon"><i class="fas fa-circle-check"></i></div>
+        <div class="card-info">
+            <h3><?php echo $completedToday; ?></h3>
+            <p>Completed Today</p>
+            <span>Marked as done</span>
+        </div>
+    </div>
 </section>
 
-<section class="panel">
+<section class="schedule-grid">
 
-    <div class="panel-header">
-        <h2>My Schedule List</h2>
+    <div class="schedule-column">
 
-        <button class="add-btn" onclick="openAddModal()">
-            <i class="fas fa-plus"></i> Add Schedule
-        </button>
+        <section class="panel">
+            <div class="panel-header">
+                <h2>My Schedule List</h2>
+
+                <button class="add-btn" onclick="openAddModal()">
+                    <i class="fas fa-plus"></i> Add Schedule
+                </button>
+            </div>
+
+            <div class="schedule-filter-row">
+                <button class="filter-chip active" onclick="filterSchedule('all', this)">All</button>
+                <button class="filter-chip" onclick="filterSchedule('Meeting', this)">Meetings</button>
+                <button class="filter-chip" onclick="filterSchedule('Work', this)">Work</button>
+                <button class="filter-chip" onclick="filterSchedule('Training', this)">Training</button>
+                <button class="filter-chip" onclick="filterSchedule('Break', this)">Break</button>
+            </div>
+
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Activity</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                    <?php if ($scheduleQuery && mysqli_num_rows($scheduleQuery) > 0) { ?>
+                        <?php while ($row = mysqli_fetch_assoc($scheduleQuery)) { ?>
+                            <?php
+                            $now = time();
+                            $start = strtotime($row['start_time']);
+                            $end = strtotime($row['end_time']);
+
+                            if ($row['status'] == 'Done') {
+                                $statusText = "Done";
+                                $statusClass = "approved";
+                            } elseif ($now >= $start && $now <= $end) {
+                                $statusText = "Ongoing";
+                                $statusClass = "pending";
+                            } elseif ($now > $end) {
+                                $statusText = "Missed";
+                                $statusClass = "rejected";
+                            } else {
+                                $statusText = "Upcoming";
+                                $statusClass = "pending";
+                            }
+
+                            $typeClass = "type-" . strtolower($row['type']);
+                            $editTitle = htmlspecialchars($row['title'], ENT_QUOTES);
+                            $editType = htmlspecialchars($row['type'], ENT_QUOTES);
+                            $editStart = date('Y-m-d\TH:i', strtotime($row['start_time']));
+                            $editEnd = date('Y-m-d\TH:i', strtotime($row['end_time']));
+                            ?>
+
+                            <tr class="schedule-row searchable-item" data-type="<?php echo htmlspecialchars($row['type']); ?>">
+                                <td><?php echo date("M d, h:i A", strtotime($row['start_time'])); ?></td>
+                                <td><?php echo htmlspecialchars($row['title']); ?></td>
+                                <td>
+                                    <span class="type-pill <?php echo $typeClass; ?>">
+                                        <?php echo htmlspecialchars($row['type']); ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="status <?php echo $statusClass; ?>">
+                                        <?php echo $statusText; ?>
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="action-btns">
+                                        <button type="button" class="small-btn edit-btn"
+                                            onclick="openEditModal(
+                                                '<?php echo $row['id']; ?>',
+                                                '<?php echo $editTitle; ?>',
+                                                '<?php echo $editType; ?>',
+                                                '<?php echo $editStart; ?>',
+                                                '<?php echo $editEnd; ?>'
+                                            )">
+                                            Edit
+                                        </button>
+
+                                        <?php if ($row['status'] != 'Done') { ?>
+                                            <a class="small-btn done-btn" href="myschedule.php?done=<?php echo $row['id']; ?>">
+                                                Done
+                                            </a>
+                                        <?php } ?>
+
+                                        <a class="small-btn delete-btn"
+                                           href="myschedule.php?delete=<?php echo $row['id']; ?>"
+                                           onclick="return confirm('Delete this schedule item?');">
+                                            Delete
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php } ?>
+                    <?php } else { ?>
+                        <tr>
+                            <td colspan="5" class="schedule-empty">
+                                No schedule items yet. Add your first schedule.
+                            </td>
+                        </tr>
+                    <?php } ?>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
     </div>
 
-    <div class="table-wrapper">
+    <div class="schedule-column">
 
-        <table>
-            <thead>
-                <tr>
-                    <th>Time</th>
-                    <th>Activity</th>
-                    <th>Type</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
+        <section class="panel">
+            <div class="panel-header">
+                <h2>Today Timeline</h2>
+            </div>
 
-            <tbody>
-
-            <?php if ($scheduleQuery && mysqli_num_rows($scheduleQuery) > 0) { ?>
-
-                <?php while ($row = mysqli_fetch_assoc($scheduleQuery)) { ?>
-
-                    <?php
-                    $now = time();
-                    $start = strtotime($row['start_time']);
-                    $end = strtotime($row['end_time']);
-
-                    if ($row['status'] == 'Done') {
-                        $statusText = "Done";
-                        $statusClass = "approved";
-                    } elseif ($now >= $start && $now <= $end) {
-                        $statusText = "Ongoing";
-                        $statusClass = "pending";
-                    } elseif ($now > $end) {
-                        $statusText = "Missed";
-                        $statusClass = "rejected";
-                    } else {
-                        $statusText = "Upcoming";
-                        $statusClass = "pending";
-                    }
-
-                    $editTitle = htmlspecialchars($row['title'], ENT_QUOTES);
-                    $editType = htmlspecialchars($row['type'], ENT_QUOTES);
-                    $editStart = date('Y-m-d\TH:i', strtotime($row['start_time']));
-                    $editEnd = date('Y-m-d\TH:i', strtotime($row['end_time']));
-                    ?>
-
-                    <tr>
-                        <td>
-                            <?php echo date("M d, h:i A", strtotime($row['start_time'])); ?>
-                        </td>
-
-                        <td>
-                            <?php echo htmlspecialchars($row['title']); ?>
-                        </td>
-
-                        <td>
-                            <?php echo htmlspecialchars($row['type']); ?>
-                        </td>
-
-                        <td>
-                            <span class="status <?php echo $statusClass; ?>">
-                                <?php echo $statusText; ?>
-                            </span>
-                        </td>
-
-                        <td>
-                            <div class="action-btns">
-
-                                <button
-                                    type="button"
-                                    class="small-btn edit-btn"
-                                    onclick="openEditModal(
-                                        '<?php echo $row['id']; ?>',
-                                        '<?php echo $editTitle; ?>',
-                                        '<?php echo $editType; ?>',
-                                        '<?php echo $editStart; ?>',
-                                        '<?php echo $editEnd; ?>'
-                                    )"
-                                >
-                                    Edit
-                                </button>
-
-                                <?php if ($row['status'] != 'Done') { ?>
-                                    <a
-                                        class="small-btn done-btn"
-                                        href="myschedule.php?done=<?php echo $row['id']; ?>"
-                                    >
-                                        Done
-                                    </a>
-                                <?php } ?>
-
-                                <a
-                                    class="small-btn delete-btn"
-                                    href="myschedule.php?delete=<?php echo $row['id']; ?>"
-                                    onclick="return confirm('Delete this schedule item?');"
-                                >
-                                    Delete
-                                </a>
-
+            <div class="today-timeline">
+                <?php if ($todayScheduleQuery && mysqli_num_rows($todayScheduleQuery) > 0) { ?>
+                    <?php while ($todayRow = mysqli_fetch_assoc($todayScheduleQuery)) { ?>
+                        <div class="timeline-item searchable-item">
+                            <div class="timeline-icon">
+                                <i class="fas fa-clock"></i>
                             </div>
-                        </td>
-                    </tr>
 
+                            <div>
+                                <h4><?php echo htmlspecialchars($todayRow['title']); ?></h4>
+                                <p>
+                                    <?php echo date("h:i A", strtotime($todayRow['start_time'])); ?>
+                                    -
+                                    <?php echo date("h:i A", strtotime($todayRow['end_time'])); ?>
+                                    · <?php echo htmlspecialchars($todayRow['type']); ?>
+                                </p>
+                            </div>
+                        </div>
+                    <?php } ?>
+                <?php } else { ?>
+                    <div class="timeline-item">
+                        <div class="timeline-icon">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                        <div>
+                            <h4>No schedule for today</h4>
+                            <p>Your day is currently clear.</p>
+                        </div>
+                    </div>
                 <?php } ?>
+            </div>
+        </section>
 
-            <?php } else { ?>
+        <section class="panel">
+            <div class="panel-header">
+                <h2>Schedule Tips</h2>
+            </div>
 
-                <tr>
-                    <td colspan="5" class="schedule-empty">
-                        No schedule items yet. Add your first schedule.
-                    </td>
-                </tr>
-
-            <?php } ?>
-
-            </tbody>
-        </table>
+            <div class="timeline-item searchable-item">
+                <div class="timeline-icon">
+                    <i class="fas fa-lightbulb"></i>
+                </div>
+                <div>
+                    <h4>Keep your schedule updated</h4>
+                    <p>Mark completed items as Done so your weekly planning stays accurate.</p>
+                </div>
+            </div>
+        </section>
 
     </div>
 
 </section>
 
 </main>
-
 </div>
 
 <div class="modal" id="addModal">
-
     <div class="modal-content">
-
         <h2>Add Schedule</h2>
 
         <form method="POST">
-
             <div class="form-group">
                 <label>Activity Title</label>
                 <input type="text" name="title" required>
@@ -571,7 +750,6 @@ $scheduleQuery = mysqli_query($conn, "
 
             <div class="form-group">
                 <label>Type</label>
-
                 <select name="type" required>
                     <option value="Meeting">Meeting</option>
                     <option value="Work">Work</option>
@@ -591,29 +769,18 @@ $scheduleQuery = mysqli_query($conn, "
             </div>
 
             <div class="modal-actions">
-                <button type="button" class="small-btn close-btn" onclick="closeAddModal()">
-                    Cancel
-                </button>
-
-                <button type="submit" name="add_schedule" class="small-btn save-btn">
-                    Save
-                </button>
+                <button type="button" class="small-btn close-btn" onclick="closeAddModal()">Cancel</button>
+                <button type="submit" name="add_schedule" class="small-btn save-btn">Save</button>
             </div>
-
         </form>
-
     </div>
-
 </div>
 
 <div class="modal" id="editModal">
-
     <div class="modal-content">
-
         <h2>Edit Schedule</h2>
 
         <form method="POST">
-
             <input type="hidden" name="schedule_id" id="edit_id">
 
             <div class="form-group">
@@ -623,7 +790,6 @@ $scheduleQuery = mysqli_query($conn, "
 
             <div class="form-group">
                 <label>Type</label>
-
                 <select name="type" id="edit_type" required>
                     <option value="Meeting">Meeting</option>
                     <option value="Work">Work</option>
@@ -643,19 +809,11 @@ $scheduleQuery = mysqli_query($conn, "
             </div>
 
             <div class="modal-actions">
-                <button type="button" class="small-btn close-btn" onclick="closeEditModal()">
-                    Cancel
-                </button>
-
-                <button type="submit" name="update_schedule" class="small-btn save-btn">
-                    Update
-                </button>
+                <button type="button" class="small-btn close-btn" onclick="closeEditModal()">Cancel</button>
+                <button type="submit" name="update_schedule" class="small-btn save-btn">Update</button>
             </div>
-
         </form>
-
     </div>
-
 </div>
 
 <script>
@@ -693,7 +851,39 @@ window.onclick = function(event) {
         closeEditModal();
     }
 }
+
+function filterSchedule(type, button) {
+    const rows = document.querySelectorAll(".schedule-row");
+    const buttons = document.querySelectorAll(".filter-chip");
+
+    buttons.forEach(btn => btn.classList.remove("active"));
+    button.classList.add("active");
+
+    rows.forEach(row => {
+        if (type === "all" || row.dataset.type === type) {
+            row.style.display = "";
+        } else {
+            row.style.display = "none";
+        }
+    });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+    const searchInput = document.getElementById("scheduleSearch");
+    const searchableItems = document.querySelectorAll(".searchable-item");
+
+    if (searchInput) {
+        searchInput.addEventListener("input", function () {
+            const value = this.value.toLowerCase().trim();
+
+            searchableItems.forEach(function(item) {
+                const text = item.innerText.toLowerCase();
+                item.style.display = text.includes(value) ? "" : "none";
+            });
+        });
+    }
+});
 </script>
-<script src="js/global-dashboard.js"></script>
+
 </body>
 </html>
