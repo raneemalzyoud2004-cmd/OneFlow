@@ -13,7 +13,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'hr') {
 
 $full_name = $_SESSION['full_name'];
 
-if (!isset($_GET['id'])) {
+if (!isset($_GET['id']) || empty($_GET['id'])) {
     header("Location: employees.php");
     exit();
 }
@@ -22,12 +22,15 @@ $user_id = intval($_GET['id']);
 
 $query = "SELECT id, full_name, username, email, role, account_status, salary, failed_attempts, is_blocked, last_login 
           FROM users 
-          WHERE id = $user_id AND role = 'employee'";
+          WHERE id = ?";
 
-$result = mysqli_query($conn, $query);
+$stmt = mysqli_prepare($conn, $query);
+mysqli_stmt_bind_param($stmt, "i", $user_id);
+mysqli_stmt_execute($stmt);
+$result = mysqli_stmt_get_result($stmt);
 
 if (!$result || mysqli_num_rows($result) == 0) {
-    echo "Employee not found.";
+    echo "User not found.";
     exit();
 }
 
@@ -36,13 +39,14 @@ $user = mysqli_fetch_assoc($result);
 $statusClass = ($user['account_status'] == 'active') ? 'approved' : 'pending';
 $blockedText = ($user['is_blocked'] == 1) ? 'Blocked' : 'Not Blocked';
 $lastLogin = !empty($user['last_login']) ? $user['last_login'] : 'No login yet';
+$displayRole = ucfirst(htmlspecialchars($user['role']));
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Employee Profile - OneFlow</title>
+  <title>User Profile - OneFlow</title>
   <link rel="stylesheet" href="css/styleadmin.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
@@ -120,23 +124,33 @@ $lastLogin = !empty($user['last_login']) ? $user['last_login'] : 'No login yet';
       margin-bottom: 8px;
     }
 
-    .action-btn {
-      padding: 10px 14px;
+    .hero-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .hero-btn {
+      padding: 12px 18px;
       border-radius: 12px;
       text-decoration: none;
-      font-weight: 700;
-      display: inline-block;
-      margin-right: 8px;
+      font-weight: 800;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: none;
+      cursor: pointer;
     }
 
-    .edit-btn {
-      background: #83A6CE;
+    .primary-btn {
+      background: #ffffff;
       color: #0D1E4C;
     }
 
-    .back-btn {
-      background: #E5C9D7;
-      color: #0D1E4C;
+    .secondary-btn {
+      background: rgba(255,255,255,0.18);
+      color: #ffffff;
+      border: 1px solid rgba(255,255,255,0.35);
     }
 
     @media (max-width: 900px) {
@@ -189,8 +203,8 @@ $lastLogin = !empty($user['last_login']) ? $user['last_login'] : 'No login yet';
 
     <header class="topbar">
       <div class="topbar-left">
-        <h1>Employee Profile</h1>
-        <p>View detailed employee information and account status.</p>
+        <h1>User Profile</h1>
+        <p>View detailed user information and account status.</p>
       </div>
 
       <div class="topbar-right">
@@ -225,7 +239,7 @@ $lastLogin = !empty($user['last_login']) ? $user['last_login'] : 'No login yet';
 
       <div class="hero-actions">
         <a href="editemployee.php?id=<?php echo $user['id']; ?>" class="hero-btn primary-btn">
-          <i class="fas fa-pen"></i> Edit Employee
+          <i class="fas fa-pen"></i> Edit User
         </a>
 
         <a href="employees.php" class="hero-btn secondary-btn">
@@ -240,7 +254,7 @@ $lastLogin = !empty($user['last_login']) ? $user['last_login'] : 'No login yet';
         <h3><i class="fas fa-id-card"></i> Basic Information</h3>
 
         <div class="overview-row">
-          <span>Employee ID</span>
+          <span>User ID</span>
           <strong><?php echo htmlspecialchars($user['id']); ?></strong>
         </div>
 
@@ -261,7 +275,7 @@ $lastLogin = !empty($user['last_login']) ? $user['last_login'] : 'No login yet';
 
         <div class="overview-row">
           <span>Role</span>
-          <strong><?php echo ucfirst(htmlspecialchars($user['role'])); ?></strong>
+          <strong><?php echo $displayRole; ?></strong>
         </div>
       </div>
 

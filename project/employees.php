@@ -29,11 +29,11 @@ if (isset($_POST['update_employee'])) {
             email='$email',
             account_status='$accountStatus',
             salary='$salary'
-        WHERE id=$id AND role='employee'
+        WHERE id=$id
     ");
 
     if ($update) {
-        $successMessage = "Employee updated successfully.";
+        $successMessage = "User updated successfully.";
     }
 }
 
@@ -44,11 +44,27 @@ if (isset($_POST['deactivate_employee'])) {
         UPDATE users 
         SET account_status='inactive',
             is_blocked=1
-        WHERE id=$id AND role='employee'
+        WHERE id=$id
     ");
 
     if ($deactivate) {
-        $successMessage = "Employee deactivated successfully.";
+        $successMessage = "User deactivated successfully.";
+    }
+}
+
+if (isset($_POST['activate_employee'])) {
+    $id = intval($_POST['employee_id']);
+
+    $activate = mysqli_query($conn, "
+        UPDATE users 
+        SET account_status='active',
+            is_blocked=0,
+            failed_attempts=0
+        WHERE id=$id
+    ");
+
+    if ($activate) {
+        $successMessage = "User activated successfully.";
     }
 }
 
@@ -56,35 +72,32 @@ $totalEmployees = 0;
 $activeEmployees = 0;
 $inactiveEmployees = 0;
 $pendingAccounts = 0;
-$roleFilter = isset($_GET['role']) ? $_GET['role'] : '';
-$result = mysqli_query($conn, "SELECT COUNT(*) AS total FROM users WHERE role='employee'");
-if ($result) $totalEmployees = mysqli_fetch_assoc($result)['total'];
 
-$result = mysqli_query($conn, "SELECT COUNT(*) AS total FROM users WHERE role='employee' AND account_status='active'");
-if ($result) $activeEmployees = mysqli_fetch_assoc($result)['total'];
-
-$result = mysqli_query($conn, "SELECT COUNT(*) AS total FROM users WHERE role='employee' AND account_status='inactive'");
-if ($result) $inactiveEmployees = mysqli_fetch_assoc($result)['total'];
-
-$result = mysqli_query($conn, "SELECT COUNT(*) AS total FROM users WHERE role='employee' AND account_status='pending_setup'");
-if ($result) $pendingAccounts = mysqli_fetch_assoc($result)['total'];
-
-$search = "";
+$roleFilter = isset($_GET['role']) ? mysqli_real_escape_string($conn, $_GET['role']) : '';
 $search = isset($_GET['search']) ? mysqli_real_escape_string($conn, $_GET['search']) : '';
 
-$whereClauses = []; // no hardcoded role
+$result = mysqli_query($conn, "SELECT COUNT(*) AS total FROM users");
+if ($result) $totalEmployees = mysqli_fetch_assoc($result)['total'];
 
-// Add search filter if exists
+$result = mysqli_query($conn, "SELECT COUNT(*) AS total FROM users WHERE account_status='active'");
+if ($result) $activeEmployees = mysqli_fetch_assoc($result)['total'];
+
+$result = mysqli_query($conn, "SELECT COUNT(*) AS total FROM users WHERE account_status='inactive'");
+if ($result) $inactiveEmployees = mysqli_fetch_assoc($result)['total'];
+
+$result = mysqli_query($conn, "SELECT COUNT(*) AS total FROM users WHERE account_status='pending_setup'");
+if ($result) $pendingAccounts = mysqli_fetch_assoc($result)['total'];
+
+$whereClauses = [];
+
 if (!empty($search)) {
     $whereClauses[] = "(full_name LIKE '%$search%' OR username LIKE '%$search%' OR email LIKE '%$search%')";
 }
 
-// Add role filter if selected
 if (!empty($roleFilter)) {
     $whereClauses[] = "role='$roleFilter'";
 }
 
-// Build the WHERE clause
 $whereSQL = !empty($whereClauses) ? "WHERE " . implode(" AND ", $whereClauses) : "";
 
 $employees = mysqli_query($conn, "
@@ -119,6 +132,7 @@ $employees = mysqli_query($conn, "
     .view-btn { background: #E5C9D7; color: #0D1E4C; }
     .edit-btn { background: #83A6CE; color: #0D1E4C; }
     .deactivate-btn { background: #ffe0e0; color: #9b1c1c; }
+    .activate-btn { background: #dcfce7; color: #166534; }
 
     .success-message {
       background: #e7f8ee;
@@ -286,7 +300,7 @@ $employees = mysqli_query($conn, "
     <section class="hero-banner">
       <div class="hero-text">
         <h2>Employees Directory 👥</h2>
-        <p>You can manage employee information, account status, and basic work data from here.</p>
+        <p>You can manage user information, account status, roles, and basic work data from here.</p>
       </div>
 
       <div class="hero-actions">
@@ -301,17 +315,17 @@ $employees = mysqli_query($conn, "
         <div class="card-icon"><i class="fas fa-users"></i></div>
         <div class="card-info">
           <h3><?php echo $totalEmployees; ?></h3>
-          <p>Total Employees</p>
-          <span>Registered employees</span>
+          <p>Total Users</p>
+          <span>Registered users</span>
         </div>
       </div>
 
       <div class="card">
         <div class="card-icon"><i class="fas fa-building"></i></div>
         <div class="card-info">
-          <h3>1</h3>
-          <p>Departments</p>
-          <span>General department</span>
+          <h3>4</h3>
+          <p>Roles</p>
+          <span>Admin, HR, Employee, Team Leader</span> 
         </div>
       </div>
 
@@ -319,7 +333,7 @@ $employees = mysqli_query($conn, "
         <div class="card-icon"><i class="fas fa-user-check"></i></div>
         <div class="card-info">
           <h3><?php echo $activeEmployees; ?></h3>
-          <p>Active Employees</p>
+          <p>Active Users</p>
           <span>Currently working</span>
         </div>
       </div>
@@ -333,28 +347,17 @@ $employees = mysqli_query($conn, "
         </div>
       </div>
     </section>
-<div class="panel">
+
+    <div class="panel">
       <div class="panel-header">
         <h2>Search and Filter</h2>
       </div>
 
       <form method="GET" style="width:100%;">
-        <div style="
-          display:grid;
-          grid-template-columns: 2fr 1fr auto;
-          gap:18px;
-          align-items:end;
-          width:100%;
-        ">
+        <div style="display:grid; grid-template-columns: 2fr 1fr auto; gap:18px; align-items:end; width:100%;">
           
           <div style="width:100%;">
-            <label for="search" style="
-              display:block;
-              margin-bottom:10px;
-              color:#0f172a;
-              font-size:14px;
-              font-weight:700;
-            ">Search</label>
+            <label for="search" style="display:block; margin-bottom:10px; color:#0f172a; font-size:14px; font-weight:700;">Search</label>
 
             <input
               type="text"
@@ -362,45 +365,17 @@ $employees = mysqli_query($conn, "
               name="search"
               placeholder="Name, username, or email"
               value="<?php echo htmlspecialchars($search); ?>"
-              style="
-                width:100%;
-                height:48px;
-                padding:0 14px;
-                border:1px solid #dbe7f0;
-                border-radius:14px;
-                background:#ffffff;
-                outline:none;
-                font-size:14px;
-                color:#0f172a;
-                box-shadow:0 6px 18px rgba(15, 23, 42, 0.04);
-              "
+              style="width:100%; height:48px; padding:0 14px; border:1px solid #dbe7f0; border-radius:14px; background:#ffffff; outline:none; font-size:14px; color:#0f172a; box-shadow:0 6px 18px rgba(15, 23, 42, 0.04);"
             >
           </div>
 
           <div style="width:100%;">
-            <label for="role" style="
-              display:block;
-              margin-bottom:10px;
-              color:#0f172a;
-              font-size:14px;
-              font-weight:700;
-            ">Role</label>
+            <label for="role" style="display:block; margin-bottom:10px; color:#0f172a; font-size:14px; font-weight:700;">Role</label>
 
             <select
               id="role"
               name="role"
-              style="
-                width:100%;
-                height:48px;
-                padding:0 14px;
-                border:1px solid #dbe7f0;
-                border-radius:14px;
-                background:#ffffff;
-                outline:none;
-                font-size:14px;
-                color:#0f172a;
-                box-shadow:0 6px 18px rgba(15, 23, 42, 0.04);
-              "
+              style="width:100%; height:48px; padding:0 14px; border:1px solid #dbe7f0; border-radius:14px; background:#ffffff; outline:none; font-size:14px; color:#0f172a; box-shadow:0 6px 18px rgba(15, 23, 42, 0.04);"
             >
               <option value="">All Roles</option>
               <option value="admin" <?php echo $roleFilter === 'admin' ? 'selected' : ''; ?>>Admin</option>
@@ -410,45 +385,17 @@ $employees = mysqli_query($conn, "
             </select>
           </div>
 
-          <div style="
-            display:flex;
-            gap:10px;
-            align-items:center;
-          ">
+          <div style="display:flex; gap:10px; align-items:center;">
             <button
               type="submit"
-              style="
-                min-width:110px;
-                height:48px;
-                border:none;
-                border-radius:14px;
-                font-size:14px;
-                font-weight:700;
-                cursor:pointer;
-                background:linear-gradient(90deg, #0ea5a4, #14b8a6);
-                color:white;
-                box-shadow:0 10px 18px rgba(20, 184, 166, 0.22);
-              "
+              style="min-width:110px; height:48px; border:none; border-radius:14px; font-size:14px; font-weight:700; cursor:pointer; background:linear-gradient(90deg, #0ea5a4, #14b8a6); color:white; box-shadow:0 10px 18px rgba(20, 184, 166, 0.22);"
             >
               Apply
             </button>
 
             <a
-              href="manageusers.php"
-              style="
-                min-width:110px;
-                height:48px;
-                border:none;
-                border-radius:14px;
-                font-size:14px;
-                font-weight:700;
-                text-decoration:none;
-                display:inline-flex;
-                align-items:center;
-                justify-content:center;
-                background:#e2e8f0;
-                color:#0f172a;
-              "
+              href="employees.php"
+              style="min-width:110px; height:48px; border:none; border-radius:14px; font-size:14px; font-weight:700; text-decoration:none; display:inline-flex; align-items:center; justify-content:center; background:#e2e8f0; color:#0f172a;"
             >
               Reset
             </a>
@@ -457,9 +404,10 @@ $employees = mysqli_query($conn, "
         </div>
       </form>
     </div>
+
     <section class="panel">
       <div class="panel-header">
-        <h2>Employee List</h2>
+        <h2>User List</h2>
         <a href="employees.php">View All</a>
       </div>
 
@@ -480,13 +428,24 @@ $employees = mysqli_query($conn, "
           <tbody>
             <?php if ($employees && mysqli_num_rows($employees) > 0): ?>
               <?php while ($row = mysqli_fetch_assoc($employees)): ?>
+
+                <?php
+                  $statusClass = 'pending';
+
+                  if ($row['account_status'] == 'active') {
+                      $statusClass = 'approved';
+                  } elseif ($row['account_status'] == 'inactive') {
+                      $statusClass = 'rejected';
+                  }
+                ?>
+
                 <tr>
                   <td><?php echo htmlspecialchars($row['full_name']); ?></td>
                   <td><?php echo htmlspecialchars($row['username']); ?></td>
                   <td><?php echo htmlspecialchars(ucfirst($row['role'])); ?></td>
 
                   <td>
-                    <span class="status <?php echo $row['account_status'] == 'active' ? 'approved' : 'pending'; ?>">
+                    <span class="status <?php echo $statusClass; ?>">
                       <?php echo htmlspecialchars($row['account_status']); ?>
                     </span>
                   </td>
@@ -512,23 +471,37 @@ $employees = mysqli_query($conn, "
                       Edit
                     </button>
 
-                    <form method="POST" action="employees.php" style="display:inline;">
-                      <input type="hidden" name="employee_id" value="<?php echo $row['id']; ?>">
-                      <button 
-                        type="submit"
-                        name="deactivate_employee"
-                        class="action-btn deactivate-btn"
-                        onclick="return confirm('Are you sure you want to deactivate this employee?');"
-                      >
-                        Deactivate
-                      </button>
-                    </form>
+                    <?php if ($row['account_status'] == 'active'): ?>
+                      <form method="POST" action="employees.php" style="display:inline;">
+                        <input type="hidden" name="employee_id" value="<?php echo $row['id']; ?>">
+                        <button 
+                          type="submit"
+                          name="deactivate_employee"
+                          class="action-btn deactivate-btn"
+                          onclick="return confirm('Are you sure you want to deactivate this user?');"
+                        >
+                          Deactivate
+                        </button>
+                      </form>
+                    <?php else: ?>
+                      <form method="POST" action="employees.php" style="display:inline;">
+                        <input type="hidden" name="employee_id" value="<?php echo $row['id']; ?>">
+                        <button 
+                          type="submit"
+                          name="activate_employee"
+                          class="action-btn activate-btn"
+                          onclick="return confirm('Are you sure you want to activate this user?');"
+                        >
+                          Activate
+                        </button>
+                      </form>
+                    <?php endif; ?>
                   </td>
                 </tr>
               <?php endwhile; ?>
             <?php else: ?>
               <tr>
-                <td colspan="7">No employees found.</td>
+                <td colspan="7">No users found.</td>
               </tr>
             <?php endif; ?>
           </tbody>
@@ -541,7 +514,7 @@ $employees = mysqli_query($conn, "
 
 <div class="modal-overlay" id="editModal">
   <div class="modal-box">
-    <h2>Edit Employee</h2>
+    <h2>Edit User</h2>
 
     <form method="POST" action="employees.php">
       <input type="hidden" name="employee_id" id="edit_employee_id">

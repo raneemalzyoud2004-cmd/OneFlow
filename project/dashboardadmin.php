@@ -237,7 +237,13 @@ $blocked_result = mysqli_query($conn, $blocked_sql);
         <div class="topbar-right">
           <div class="search-box">
             <i class="fas fa-search"></i>
-            <input type="text" id="userSearch" list="usersList" placeholder="Search users by name or username...">
+           <input 
+    type="text" 
+    id="userSearch" 
+    list="usersList"
+    placeholder="Search users by name or username..."
+    onkeyup="searchDashboard()"
+>
             <datalist id="usersList">
               <?php foreach ($searchUsers as $searchUser) { ?>
                 <option value="<?php echo htmlspecialchars($searchUser['full_name']); ?>"></option>
@@ -444,7 +450,7 @@ $blocked_result = mysqli_query($conn, $blocked_sql);
       </section>
 
       <section class="cards">
-        <div class="card">
+       <div class="card searchable-item">
           <div class="card-icon"><i class="fas fa-users"></i></div>
           <div class="card-info">
             <h3><?php echo $employeesCount; ?></h3>
@@ -453,7 +459,7 @@ $blocked_result = mysqli_query($conn, $blocked_sql);
           </div>
         </div>
 
-        <div class="card">
+     <div class="card searchable-item">
           <div class="card-icon"><i class="fas fa-user-shield"></i></div>
           <div class="card-info">
             <h3><?php echo $adminCount; ?></h3>
@@ -462,7 +468,7 @@ $blocked_result = mysqli_query($conn, $blocked_sql);
           </div>
         </div>
 
-        <div class="card">
+           <div class="card searchable-item">
           <div class="card-icon"><i class="fas fa-user-tie"></i></div>
           <div class="card-info">
             <h3><?php echo $hrCount; ?></h3>
@@ -471,7 +477,7 @@ $blocked_result = mysqli_query($conn, $blocked_sql);
           </div>
         </div>
 
-        <div class="card">
+        <div class="card searchable-item">
           <div class="card-icon"><i class="fas fa-chart-pie"></i></div>
           <div class="card-info">
             <h3><?php echo $pendingRequestsCount; ?></h3>
@@ -769,6 +775,22 @@ $blocked_result = mysqli_query($conn, $blocked_sql);
       });
     });
   </script>
+<script>
+function searchTeamLeaderDashboard() {
+    const input = document.getElementById("teamSearch");
+    const searchValue = input.value.toLowerCase().trim();
+    const items = document.querySelectorAll(".searchable-item");
 
+    items.forEach(function(item) {
+        const text = item.innerText.toLowerCase();
+
+        if (text.includes(searchValue)) {
+            item.style.display = "";
+        } else {
+            item.style.display = "none";
+        }
+    });
+}
+</script>
 </body>
 </html>
