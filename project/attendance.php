@@ -11,124 +11,68 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'hr') {
     exit();
 }
 
-$full_name = $_SESSION['full_name'];
+$full_name = $_SESSION['full_name'] ?? 'HR';
 $today = date("Y-m-d");
 
-mysqli_query($conn, "
-    CREATE TABLE IF NOT EXISTS work_attendance (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NOT NULL,
-        work_date DATE NOT NULL,
-        start_work TIME NOT NULL,
-        end_work TIME NULL,
-        total_hours VARCHAR(20) NULL,
-        status VARCHAR(30) DEFAULT 'Working',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-");
+function getCount($conn, $today, $status) {
+    $status = mysqli_real_escape_string($conn, $status);
+    $result = mysqli_query($conn, "SELECT COUNT(*) AS total FROM attendance WHERE attendance_date='$today' AND status='$status'");
+    if ($result) return mysqli_fetch_assoc($result)['total'];
+    return 0;
+}
 
-mysqli_query($conn, "
-    CREATE TABLE IF NOT EXISTS login_days (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT NOT NULL,
-        login_date DATE NOT NULL,
-        logout_date DATE NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-");
-
-$presentToday = 0;
-$completedToday = 0;
-$workingNow = 0;
-$totalWorkSessions = 0;
-
-$result = mysqli_query($conn, "
-    SELECT COUNT(*) AS total 
-    FROM work_attendance 
-    WHERE work_date = '$today'
-");
-if ($result) $presentToday = mysqli_fetch_assoc($result)['total'];
-
-$result = mysqli_query($conn, "
-    SELECT COUNT(*) AS total 
-    FROM work_attendance 
-    WHERE work_date = '$today' 
-    AND status = 'Completed'
-");
-if ($result) $completedToday = mysqli_fetch_assoc($result)['total'];
-
-$result = mysqli_query($conn, "
-    SELECT COUNT(*) AS total 
-    FROM work_attendance 
-    WHERE work_date = '$today' 
-    AND status = 'Working'
-");
-if ($result) $workingNow = mysqli_fetch_assoc($result)['total'];
-
-$result = mysqli_query($conn, "
-    SELECT COUNT(*) AS total 
-    FROM work_attendance
-");
-if ($result) $totalWorkSessions = mysqli_fetch_assoc($result)['total'];
+$presentToday = getCount($conn, $today, "Present");
+$absentToday = getCount($conn, $today, "Absent");
+$lateToday = getCount($conn, $today, "Late");
+$onLeaveToday = getCount($conn, $today, "On Leave");
 
 $search = "";
 $dateFilter = "";
 
-$where = "WHERE users.role = 'employee'";
+$where = "WHERE users.role='employee'";
 
 if (isset($_GET['search']) && trim($_GET['search']) !== "") {
     $search = mysqli_real_escape_string($conn, trim($_GET['search']));
-
     $where .= "
         AND (
             users.full_name LIKE '%$search%'
             OR users.email LIKE '%$search%'
-            OR users.username LIKE '%$search%'
-            OR work_attendance.status LIKE '%$search%'
-            OR work_attendance.total_hours LIKE '%$search%'
+            OR attendance.status LIKE '%$search%'
+            OR attendance.notes LIKE '%$search%'
+            OR attendance.attendance_date LIKE '%$search%'
         )
     ";
 }
 
 if (isset($_GET['date']) && trim($_GET['date']) !== "") {
     $dateFilter = mysqli_real_escape_string($conn, trim($_GET['date']));
-    $where .= " AND work_attendance.work_date = '$dateFilter'";
+    $where .= " AND attendance.attendance_date='$dateFilter'";
 }
 
 $records = mysqli_query($conn, "
-    SELECT 
-        work_attendance.id,
-        work_attendance.work_date,
-        work_attendance.start_work,
-        work_attendance.end_work,
-        work_attendance.total_hours,
-        work_attendance.status,
-        users.full_name,
-        users.username,
-        users.email,
-        login_days.login_date,
-        login_days.logout_date
-    FROM work_attendance
-    INNER JOIN users ON work_attendance.user_id = users.id
-    LEFT JOIN login_days 
-        ON login_days.user_id = users.id
-        AND login_days.login_date = work_attendance.work_date
+    SELECT attendance.*, users.full_name, users.email
+    FROM attendance
+    INNER JOIN users ON attendance.employee_id = users.id
     $where
-    ORDER BY work_attendance.work_date DESC, work_attendance.id DESC
+    ORDER BY attendance.attendance_date DESC, attendance.id DESC
 ");
 
 function formatTime($time) {
-    if (empty($time)) {
-        return "—";
-    }
-    return date("h:i:s A", strtotime($time));
+    if (empty($time)) return "—";
+    return date("h:i A", strtotime($time));
 }
 
-function formatDateValue($date) {
-    if (empty($date)) {
-        return "—";
-    }
-    return date("Y-m-d", strtotime($date));
+function calculateHours($checkIn, $checkOut) {
+    if (empty($checkIn) || empty($checkOut)) return "—";
+    $start = strtotime($checkIn);
+    $end = strtotime($checkOut);
+    if ($end <= $start) return "—";
+
+    $diff = $end - $start;
+    $hours = floor($diff / 3600);
+    $minutes = floor(($diff % 3600) / 60);
+
+    return $hours . "h " . $minutes . "m";
 }
 ?>
 <!DOCTYPE html>
@@ -136,7 +80,6 @@ function formatDateValue($date) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <title>Attendance - OneFlow</title>
 
 <link rel="stylesheet" href="css/styleadmin.css">
@@ -209,22 +152,6 @@ function formatDateValue($date) {
     font-weight: 800;
     cursor: pointer;
 }
-
-.status-working {
-    background: #fef3c7;
-    color: #92400e;
-}
-
-.status-completed {
-    background: #dcfce7;
-    color: #166534;
-}
-
-.work-note {
-    color: #64748b;
-    font-size: 13px;
-    font-weight: 700;
-}
 </style>
 </head>
 
@@ -254,9 +181,9 @@ function formatDateValue($date) {
 
     <div class="sidebar-bottom">
         <div class="system-card">
-            <p>Work Tracking</p>
-            <h4>Live</h4>
-            <span>Start/End Work enabled</span>
+            <p>System Health</p>
+            <h4>Excellent</h4>
+            <span>99.2% uptime</span>
         </div>
     </div>
 </aside>
@@ -266,7 +193,7 @@ function formatDateValue($date) {
 <header class="topbar">
     <div class="topbar-left">
         <h1>Attendance</h1>
-        <p>Track employee login days and actual work time from Start Work / End Work.</p>
+        <p>Track employee attendance, check-ins, check-outs, and late arrivals.</p>
     </div>
 
     <div class="topbar-right">
@@ -276,12 +203,12 @@ function formatDateValue($date) {
                 <input 
                     type="text" 
                     name="search"
-                    placeholder="Search employee, status, time..."
+                    placeholder="Search attendance records..."
                     value="<?php echo htmlspecialchars($search); ?>"
                 >
-                <?php if (!empty($dateFilter)) { ?>
+                <?php if (!empty($dateFilter)): ?>
                     <input type="hidden" name="date" value="<?php echo htmlspecialchars($dateFilter); ?>">
-                <?php } ?>
+                <?php endif; ?>
                 <button type="submit"><i class="fas fa-arrow-right"></i></button>
             </form>
         </div>
@@ -302,15 +229,19 @@ function formatDateValue($date) {
 
 <section class="hero-banner">
     <div class="hero-text">
-        <h2>Work Attendance Overview</h2>
+        <h2>Attendance Overview</h2>
         <p>
-            This page shows real employee work sessions, not only system login.
+            Monitor employee attendance records from employee Check In / Check Out.
             <br>
             <span class="date-badge"><?php echo date("F d, Y"); ?></span>
         </p>
     </div>
 
     <div class="hero-actions">
+        <a href="addattendance.php" class="hero-btn primary-btn">
+            <i class="fas fa-plus"></i> Add Attendance
+        </a>
+
         <a href="attendance.php" class="hero-btn secondary-btn">
             <i class="fas fa-rotate"></i> Refresh
         </a>
@@ -322,35 +253,35 @@ function formatDateValue($date) {
         <div class="card-icon"><i class="fas fa-user-check"></i></div>
         <div class="card-info">
             <h3><?php echo $presentToday; ?></h3>
-            <p>Work Sessions Today</p>
-            <span>Employees who clicked Start Work</span>
+            <p>Present Today</p>
+            <span>Checked in on time</span>
         </div>
     </div>
 
     <div class="card">
-        <div class="card-icon"><i class="fas fa-circle-check"></i></div>
+        <div class="card-icon"><i class="fas fa-user-xmark"></i></div>
         <div class="card-info">
-            <h3><?php echo $completedToday; ?></h3>
-            <p>Completed Today</p>
-            <span>Start and End Work completed</span>
+            <h3><?php echo $absentToday; ?></h3>
+            <p>Absent</p>
+            <span>Marked absent</span>
         </div>
     </div>
 
     <div class="card">
         <div class="card-icon"><i class="fas fa-clock"></i></div>
         <div class="card-info">
-            <h3><?php echo $workingNow; ?></h3>
-            <p>Working Now</p>
-            <span>Still active sessions</span>
+            <h3><?php echo $lateToday; ?></h3>
+            <p>Late Check-ins</p>
+            <span>Require review</span>
         </div>
     </div>
 
     <div class="card">
-        <div class="card-icon"><i class="fas fa-business-time"></i></div>
+        <div class="card-icon"><i class="fas fa-calendar-minus"></i></div>
         <div class="card-info">
-            <h3><?php echo $totalWorkSessions; ?></h3>
-            <p>Total Sessions</p>
-            <span>All recorded work sessions</span>
+            <h3><?php echo $onLeaveToday; ?></h3>
+            <p>On Leave</p>
+            <span>Approved leave today</span>
         </div>
     </div>
 </section>
@@ -360,7 +291,7 @@ function formatDateValue($date) {
         <input 
             type="text" 
             name="search" 
-            placeholder="Search by name, email, username, status..."
+            placeholder="Search by name, email, status, notes..."
             value="<?php echo htmlspecialchars($search); ?>"
         >
 
@@ -380,10 +311,7 @@ function formatDateValue($date) {
 
 <section class="panel">
     <div class="panel-header">
-        <div>
-            <h2>Work Attendance Records</h2>
-            <p class="work-note">Login/Logout are daily dates. Start/End Work are actual work hours.</p>
-        </div>
+        <h2>Attendance Records</h2>
         <a href="attendance.php">View All</a>
     </div>
 
@@ -393,13 +321,12 @@ function formatDateValue($date) {
                 <tr>
                     <th>Employee</th>
                     <th>Email</th>
-                    <th>Login Date</th>
-                    <th>Logout Date</th>
-                    <th>Work Date</th>
-                    <th>Start Work</th>
-                    <th>End Work</th>
-                    <th>Total Work Time</th>
+                    <th>Date</th>
+                    <th>Check In</th>
+                    <th>Check Out</th>
+                    <th>Total Hours</th>
                     <th>Status</th>
+                    <th>Notes</th>
                 </tr>
             </thead>
 
@@ -409,28 +336,28 @@ function formatDateValue($date) {
                         <tr>
                             <td><?php echo htmlspecialchars($row['full_name']); ?></td>
                             <td><?php echo htmlspecialchars($row['email'] ?: 'No email'); ?></td>
-                            <td><?php echo formatDateValue($row['login_date']); ?></td>
-                            <td><?php echo formatDateValue($row['logout_date']); ?></td>
-                            <td><?php echo formatDateValue($row['work_date']); ?></td>
-                            <td><?php echo formatTime($row['start_work']); ?></td>
-                            <td><?php echo formatTime($row['end_work']); ?></td>
-                            <td><?php echo htmlspecialchars($row['total_hours'] ?: 'Still working'); ?></td>
+                            <td><?php echo htmlspecialchars($row['attendance_date']); ?></td>
+                            <td><?php echo formatTime($row['check_in']); ?></td>
+                            <td><?php echo formatTime($row['check_out']); ?></td>
+                            <td><?php echo calculateHours($row['check_in'], $row['check_out']); ?></td>
                             <td>
                                 <?php
                                     $class = "pending";
-                                    if ($row['status'] == "Completed") $class = "approved";
-                                    if ($row['status'] == "Working") $class = "pending";
+                                    if ($row['status'] == "Present") $class = "approved";
+                                    if ($row['status'] == "Absent") $class = "rejected";
+                                    if ($row['status'] == "Late") $class = "pending";
+                                    if ($row['status'] == "On Leave") $class = "approved";
                                 ?>
-
                                 <span class="status <?php echo $class; ?>">
                                     <?php echo htmlspecialchars($row['status']); ?>
                                 </span>
                             </td>
+                            <td><?php echo htmlspecialchars($row['notes'] ?: 'No notes'); ?></td>
                         </tr>
                     <?php endwhile; ?>
                 <?php else: ?>
                     <tr>
-                        <td colspan="9">No work attendance records found.</td>
+                        <td colspan="8">No attendance records found.</td>
                     </tr>
                 <?php endif; ?>
             </tbody>
