@@ -1,11 +1,107 @@
 <?php
 session_start();
+include "config.php";
 
 header("Cache-Control: no-cache, no-store, must-revalidate");
 header("Pragma: no-cache");
 header("Expires: 0");
 
-$full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Leader';
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'teamleader') {
+    header("Location: login.php");
+    exit();
+}
+
+$user_id = (int) $_SESSION['user_id'];
+$full_name = $_SESSION['full_name'] ?? 'Team Leader';
+
+if (isset($_POST['mark_all_read'])) {
+    mysqli_query($conn, "UPDATE notifications SET is_read = 1 WHERE user_id = $user_id");
+    header("Location: notificationsteamleader.php");
+    exit();
+}
+
+$notificationsList = [];
+
+$notificationsResult = mysqli_query($conn, "
+    SELECT *
+    FROM notifications
+    WHERE user_id = $user_id
+    ORDER BY id DESC
+");
+
+if ($notificationsResult && mysqli_num_rows($notificationsResult) > 0) {
+    while ($row = mysqli_fetch_assoc($notificationsResult)) {
+        $notificationsList[] = $row;
+    }
+}
+
+$totalNotifications = count($notificationsList);
+
+$unreadResult = mysqli_query($conn, "
+    SELECT COUNT(*) AS total
+    FROM notifications
+    WHERE user_id = $user_id AND is_read = 0
+");
+
+$unreadNotifications = 0;
+if ($unreadResult) {
+    $unreadNotifications = (int) mysqli_fetch_assoc($unreadResult)['total'];
+}
+
+$taskUpdates = 0;
+$urgentAlerts = 0;
+$reviewReminders = 0;
+
+foreach ($notificationsList as $notification) {
+    $title = strtolower($notification['title']);
+    $type = strtolower($notification['type']);
+
+    if (strpos($title, 'task') !== false || strpos($title, 'ticket') !== false) {
+        $taskUpdates++;
+    }
+
+    if ($type === 'danger' || $type === 'warning') {
+        $urgentAlerts++;
+    }
+
+    if (strpos($title, 'submitted') !== false || strpos($title, 'review') !== false) {
+        $reviewReminders++;
+    }
+}
+
+function notificationIconClass($type)
+{
+    if ($type === 'success') {
+        return 'icon-success';
+    }
+
+    if ($type === 'warning') {
+        return 'icon-warning';
+    }
+
+    if ($type === 'danger') {
+        return 'icon-danger';
+    }
+
+    return 'icon-info';
+}
+
+function notificationIcon($type)
+{
+    if ($type === 'success') {
+        return 'fa-circle-check';
+    }
+
+    if ($type === 'warning') {
+        return 'fa-clock';
+    }
+
+    if ($type === 'danger') {
+        return 'fa-triangle-exclamation';
+    }
+
+    return 'fa-bell';
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -82,6 +178,11 @@ $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Lead
       border-radius: 18px;
       background: #f8fbfd;
       border: 1px solid #e8eef5;
+    }
+
+    .notif-item.unread {
+      background: #eff6ff;
+      border-color: #bfdbfe;
     }
 
     .notif-icon {
@@ -169,6 +270,28 @@ $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Lead
       color: #166534;
     }
 
+    .empty-box {
+      padding: 35px;
+      text-align: center;
+      color: #64748b;
+      border-radius: 20px;
+      background: #f8fafc;
+      border: 1px dashed #cbd5e1;
+    }
+
+    .notification-bell {
+      text-decoration: none;
+    }
+
+    .mark-read-form {
+      margin: 0;
+    }
+
+    .hero-btn {
+      border: none;
+      cursor: pointer;
+    }
+
     @media (max-width: 1200px) {
       .notif-stats {
         grid-template-columns: repeat(2, 1fr);
@@ -190,7 +313,6 @@ $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Lead
 
 <div class="dashboard-container">
 
-  <!-- Sidebar -->
   <aside class="sidebar">
     <div class="sidebar-top">
       <div class="logo-box">
@@ -213,14 +335,13 @@ $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Lead
 
     <div class="sidebar-bottom">
       <div class="system-card">
-        <p>Team Performance</p>
-        <h4>Excellent</h4>
-        <span>92% tasks completed</span>
+        <p>Team Updates</p>
+        <h4><?php echo $totalNotifications; ?></h4>
+        <span>Total notifications received</span>
       </div>
     </div>
   </aside>
 
-  <!-- Main Content -->
   <main class="main-content">
 
     <header class="topbar">
@@ -232,13 +353,15 @@ $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Lead
       <div class="topbar-right">
         <div class="search-box">
           <i class="fas fa-search"></i>
-          <input type="text" placeholder="Search notification, alert, member...">
+          <input type="text" id="notificationSearch" placeholder="Search notification, alert, member...">
         </div>
 
-        <div class="icon-btn notification-bell">
+        <a href="notificationsteamleader.php" class="icon-btn notification-bell">
           <i class="fas fa-bell"></i>
-          <span class="notif-count">6</span>
-        </div>
+          <?php if ($unreadNotifications > 0) { ?>
+            <span class="notif-count"><?php echo $unreadNotifications; ?></span>
+          <?php } ?>
+        </a>
 
         <div class="admin-profile">
           <div class="admin-avatar">
@@ -256,31 +379,41 @@ $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Lead
 
     <section class="hero-banner">
       <div class="hero-text">
-        <h2>Team Alerts & Updates 🔔</h2>
+        <h2>Team Alerts & Updates</h2>
         <p>Track new activity, urgent reminders, and important team events from one place.</p>
       </div>
 
       <div class="hero-actions">
-        <button class="hero-btn primary-btn"><i class="fas fa-check-double"></i> Mark All Read</button>
-        <button class="hero-btn secondary-btn"><i class="fas fa-filter"></i> Filter Alerts</button>
+        <form method="POST" class="mark-read-form">
+          <button type="submit" name="mark_all_read" class="hero-btn primary-btn">
+            <i class="fas fa-check-double"></i> Mark All Read
+          </button>
+        </form>
+
+        <a href="tasksprogress.php" class="hero-btn secondary-btn">
+          <i class="fas fa-chart-line"></i> View Progress
+        </a>
       </div>
     </section>
 
     <section class="notif-stats">
       <div class="notif-stat-card">
-        <h3>6</h3>
+        <h3><?php echo $unreadNotifications; ?></h3>
         <p>Unread Notifications</p>
       </div>
+
       <div class="notif-stat-card">
-        <h3>3</h3>
+        <h3><?php echo $urgentAlerts; ?></h3>
         <p>Urgent Alerts</p>
       </div>
+
       <div class="notif-stat-card">
-        <h3>4</h3>
+        <h3><?php echo $taskUpdates; ?></h3>
         <p>Task Updates</p>
       </div>
+
       <div class="notif-stat-card">
-        <h3>2</h3>
+        <h3><?php echo $reviewReminders; ?></h3>
         <p>Review Reminders</p>
       </div>
     </section>
@@ -290,43 +423,33 @@ $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Lead
       <div class="notif-box">
         <h3>Recent Notifications</h3>
 
-        <div class="notif-list">
-          <div class="notif-item">
-            <div class="notif-icon icon-info"><i class="fas fa-list-check"></i></div>
-            <div class="notif-content">
-              <h4>Task status updated</h4>
-              <p>Ahmad Ali changed “Employee Dashboard UI” from Pending to In Progress.</p>
-              <span class="notif-time">10 minutes ago</span>
-            </div>
-          </div>
+        <?php if (!empty($notificationsList)) { ?>
+          <div class="notif-list" id="notificationList">
+            <?php foreach ($notificationsList as $notification) { ?>
+              <?php
+                $type = strtolower($notification['type']);
+                $isUnread = ((int) $notification['is_read'] === 0) ? 'unread' : '';
+              ?>
 
-          <div class="notif-item">
-            <div class="notif-icon icon-warning"><i class="fas fa-clock"></i></div>
-            <div class="notif-content">
-              <h4>Deadline approaching</h4>
-              <p>The task “Leave Request Testing” is due tomorrow and still needs final review.</p>
-              <span class="notif-time">35 minutes ago</span>
-            </div>
-          </div>
+              <div class="notif-item <?php echo $isUnread; ?>">
+                <div class="notif-icon <?php echo notificationIconClass($type); ?>">
+                  <i class="fas <?php echo notificationIcon($type); ?>"></i>
+                </div>
 
-          <div class="notif-item">
-            <div class="notif-icon icon-success"><i class="fas fa-circle-check"></i></div>
-            <div class="notif-content">
-              <h4>Task completed</h4>
-              <p>Lina Noor completed “Profile Page Improvement” successfully.</p>
-              <span class="notif-time">1 hour ago</span>
-            </div>
+                <div class="notif-content">
+                  <h4><?php echo htmlspecialchars($notification['title']); ?></h4>
+                  <p><?php echo htmlspecialchars($notification['message']); ?></p>
+                  <span class="notif-time"><?php echo htmlspecialchars($notification['created_at']); ?></span>
+                </div>
+              </div>
+            <?php } ?>
           </div>
-
-          <div class="notif-item">
-            <div class="notif-icon icon-danger"><i class="fas fa-triangle-exclamation"></i></div>
-            <div class="notif-content">
-              <h4>Delayed task alert</h4>
-              <p>“System Settings Cleanup” is delayed and needs follow-up with Sara Khaled.</p>
-              <span class="notif-time">2 hours ago</span>
-            </div>
+        <?php } else { ?>
+          <div class="empty-box">
+            <h3>No Notifications Yet</h3>
+            <p>Employee task submissions and team updates will appear here.</p>
           </div>
-        </div>
+        <?php } ?>
       </div>
 
       <div class="quick-alerts-box">
@@ -334,21 +457,21 @@ $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Lead
 
         <div class="quick-alerts-list">
           <div class="alert-card">
-            <h4>Code Review Needed</h4>
-            <p>Two tasks are waiting for your approval before moving to completed status.</p>
-            <span class="alert-tag tag-high">High Priority</span>
+            <h4>Submitted Tasks</h4>
+            <p>Task submissions from employees will appear as notifications here.</p>
+            <span class="alert-tag tag-high">Review Center</span>
           </div>
 
           <div class="alert-card">
-            <h4>Team Meeting Reminder</h4>
-            <p>Your weekly team sync is scheduled for tomorrow at 10:00 AM.</p>
-            <span class="alert-tag tag-medium">Reminder</span>
+            <h4>Task Status Updates</h4>
+            <p>Track assigned, submitted, returned, and approved tickets.</p>
+            <span class="alert-tag tag-medium">Task Updates</span>
           </div>
 
           <div class="alert-card">
-            <h4>Good Progress</h4>
-            <p>The design and frontend work this week is moving faster than planned.</p>
-            <span class="alert-tag tag-low">Positive Update</span>
+            <h4>Team Workflow</h4>
+            <p>Use Tasks Progress to approve completed submissions or return them for revision.</p>
+            <span class="alert-tag tag-low">Workflow</span>
           </div>
         </div>
       </div>
@@ -357,6 +480,24 @@ $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Lead
 
   </main>
 </div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const searchInput = document.getElementById("notificationSearch");
+    const items = document.querySelectorAll(".notif-item");
+
+    if (searchInput) {
+        searchInput.addEventListener("input", function () {
+            const value = this.value.toLowerCase().trim();
+
+            items.forEach(function(item) {
+                const text = item.innerText.toLowerCase();
+                item.style.display = text.includes(value) ? "flex" : "none";
+            });
+        });
+    }
+});
+</script>
 
 </body>
 </html>

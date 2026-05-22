@@ -12,27 +12,39 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'itsupport') {
 }
 
 $full_name = $_SESSION['full_name'];
-$user_id = $_SESSION['user_id'];
+$user_id = (int) $_SESSION['user_id'];
 
-if (isset($_POST['resolve_ticket'])) {
+mysqli_query($conn, "ALTER TABLE support_tickets ADD COLUMN IF NOT EXISTS it_seen TINYINT(1) DEFAULT 0");
 
+if (isset($_POST['mark_ticket_seen'])) {
     $ticket_id = intval($_POST['ticket_id']);
 
     mysqli_query($conn, "
         UPDATE support_tickets
-        SET status='Resolved'
-        WHERE id='$ticket_id'
+        SET it_seen = 1
+        WHERE id = $ticket_id
+    ");
+}
+
+if (isset($_POST['resolve_ticket'])) {
+    $ticket_id = intval($_POST['ticket_id']);
+
+    mysqli_query($conn, "
+        UPDATE support_tickets
+        SET status='Resolved',
+            it_seen = 1
+        WHERE id = $ticket_id
     ");
 }
 
 if (isset($_POST['assign_ticket'])) {
-
     $ticket_id = intval($_POST['ticket_id']);
 
     mysqli_query($conn, "
         UPDATE support_tickets
         SET status='In Progress',
-            assigned_to='$user_id'
+            assigned_to='$user_id',
+            it_seen = 1
         WHERE id='$ticket_id'
     ");
 }
@@ -44,34 +56,40 @@ $resolvedTickets = 0;
 $newTickets = 0;
 
 $result = mysqli_query($conn, "SELECT COUNT(*) AS total FROM support_tickets");
-if ($result) {
-    $totalTickets = mysqli_fetch_assoc($result)['total'];
-}
+if ($result) $totalTickets = mysqli_fetch_assoc($result)['total'];
 
 $result = mysqli_query($conn, "SELECT COUNT(*) AS total FROM support_tickets WHERE status='Pending'");
-if ($result) {
-    $openTickets = mysqli_fetch_assoc($result)['total'];
-}
+if ($result) $openTickets = mysqli_fetch_assoc($result)['total'];
 
 $result = mysqli_query($conn, "SELECT COUNT(*) AS total FROM support_tickets WHERE status='In Progress'");
-if ($result) {
-    $progressTickets = mysqli_fetch_assoc($result)['total'];
-}
+if ($result) $progressTickets = mysqli_fetch_assoc($result)['total'];
 
 $result = mysqli_query($conn, "SELECT COUNT(*) AS total FROM support_tickets WHERE status='Resolved'");
-if ($result) {
-    $resolvedTickets = mysqli_fetch_assoc($result)['total'];
-}
+if ($result) $resolvedTickets = mysqli_fetch_assoc($result)['total'];
 
 $result = mysqli_query($conn, "
     SELECT COUNT(*) AS total
     FROM support_tickets
     WHERE status='Pending'
     AND assigned_to IS NULL
+    AND it_seen = 0
+");
+if ($result) $newTickets = mysqli_fetch_assoc($result)['total'];
+
+$latestNewTicket = null;
+
+$latestNewTicketQuery = mysqli_query($conn, "
+    SELECT *
+    FROM support_tickets
+    WHERE status='Pending'
+    AND assigned_to IS NULL
+    AND it_seen = 0
+    ORDER BY id DESC
+    LIMIT 1
 ");
 
-if ($result) {
-    $newTickets = mysqli_fetch_assoc($result)['total'];
+if ($latestNewTicketQuery && mysqli_num_rows($latestNewTicketQuery) > 0) {
+    $latestNewTicket = mysqli_fetch_assoc($latestNewTicketQuery);
 }
 
 $tickets = mysqli_query($conn, "
@@ -95,7 +113,6 @@ $tickets = mysqli_query($conn, "
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
-
 .ticket-status{
     padding:7px 14px;
     border-radius:30px;
@@ -135,6 +152,10 @@ $tickets = mysqli_query($conn, "
 
 .resolve-btn{
     background:#22c55e;
+}
+
+.seen-btn{
+    background:#0D1E4C;
 }
 
 .hero-support{
@@ -229,88 +250,179 @@ $tickets = mysqli_query($conn, "
     max-width:260px;
 }
 
-@media(max-width:1100px){
-
-.quick-grid{
-    grid-template-columns:repeat(2,1fr);
+.it-popup-overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(15,23,42,0.65);
+    z-index:99999;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
 }
 
+.it-popup{
+    width:520px;
+    max-width:95%;
+    background:white;
+    border-radius:28px;
+    padding:28px;
+    box-shadow:0 30px 80px rgba(0,0,0,0.25);
+    animation:popIn 0.35s ease;
+}
+
+@keyframes popIn{
+    from{
+        transform:scale(0.9);
+        opacity:0;
+    }
+    to{
+        transform:scale(1);
+        opacity:1;
+    }
+}
+
+.it-popup-icon{
+    width:70px;
+    height:70px;
+    border-radius:22px;
+    background:#fee2e2;
+    color:#991b1b;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:30px;
+    margin-bottom:18px;
+}
+
+.it-popup h2{
+    color:#0D1E4C;
+    font-size:30px;
+    margin-bottom:10px;
+}
+
+.it-popup p{
+    color:#64748b;
+    line-height:1.6;
+    margin-bottom:14px;
+}
+
+.popup-ticket-box{
+    background:#f8fafc;
+    border:1px solid #e2e8f0;
+    border-radius:18px;
+    padding:16px;
+    margin:16px 0;
+}
+
+.popup-ticket-box strong{
+    color:#0D1E4C;
+}
+
+.popup-actions{
+    display:flex;
+    gap:10px;
+    margin-top:18px;
+    flex-wrap:wrap;
+}
+
+.popup-actions a,
+.popup-actions button{
+    border:none;
+    border-radius:14px;
+    padding:12px 16px;
+    font-weight:800;
+    cursor:pointer;
+    text-decoration:none;
+}
+
+.open-ticket-btn{
+    background:linear-gradient(90deg,#0ea5a4,#14b8a6);
+    color:white;
+}
+
+.mark-seen-btn{
+    background:#e2e8f0;
+    color:#0D1E4C;
+}
+
+@media(max-width:1100px){
+    .quick-grid{
+        grid-template-columns:repeat(2,1fr);
+    }
 }
 
 @media(max-width:700px){
-
-.quick-grid{
-    grid-template-columns:1fr;
+    .quick-grid{
+        grid-template-columns:1fr;
+    }
 }
-
-}
-
 </style>
 
 </head>
 
 <body>
 
+<?php if ($latestNewTicket) { ?>
+<div class="it-popup-overlay" id="newTicketPopup">
+    <div class="it-popup">
+        <div class="it-popup-icon">
+            <i class="fas fa-ticket"></i>
+        </div>
+
+        <h2>New Support Ticket!</h2>
+
+        <p>A new technical issue has been submitted and needs IT Support review.</p>
+
+        <div class="popup-ticket-box">
+            <p><strong>Ticket ID:</strong> #<?php echo $latestNewTicket['id']; ?></p>
+            <p><strong>Subject:</strong> <?php echo htmlspecialchars($latestNewTicket['subject']); ?></p>
+            <p><strong>Description:</strong> <?php echo htmlspecialchars($latestNewTicket['description']); ?></p>
+            <p><strong>Created:</strong> <?php echo htmlspecialchars($latestNewTicket['created_at']); ?></p>
+        </div>
+
+        <div class="popup-actions">
+            <a href="itsupport_tickets.php" class="open-ticket-btn">
+                <i class="fas fa-folder-open"></i> Open Tickets
+            </a>
+
+            <form method="POST" style="display:inline;">
+                <input type="hidden" name="ticket_id" value="<?php echo $latestNewTicket['id']; ?>">
+                <button type="submit" name="mark_ticket_seen" class="mark-seen-btn">
+                    Mark as Seen
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+<?php } ?>
+
 <div class="dashboard-container">
 
 <aside class="sidebar">
 
 <div class="sidebar-top">
-
 <div class="logo-box">
 <i class="fa-solid fa-leaf"></i>
 <h2>OneFlow</h2>
 </div>
-
 <p class="admin-role">IT Support Panel</p>
-
 </div>
 
 <ul class="sidebar-menu">
-
-<li class="active">
-<a href="itsupport_dashboard.php">
-<i class="fas fa-house"></i>
-Dashboard
-</a>
-</li>
-<li>
-<a href="itsupport_tickets.php">
-<i class="fas fa-user-check"></i>
-All Tickets
-</a>
-</li>
-<li>
-<a href="it_inventory.php">
-<i class="fas fa-laptop"></i>
-Device Inventory
-</a>
-</li>
-
-<li>
-<a href="it_whoholdswhat.php">
-<i class="fas fa-user-check"></i>
-Who Holds What
-</a>
-</li>
-
-<li>
-<a href="logout.php">
-<i class="fas fa-right-from-bracket"></i>
-Logout
-</a>
-</li>
-
+<li class="active"><a href="itsupport_dashboard.php"><i class="fas fa-house"></i> Dashboard</a></li>
+<li><a href="itsupport_tickets.php"><i class="fas fa-user-check"></i> All Tickets</a></li>
+<li><a href="it_inventory.php"><i class="fas fa-laptop"></i> Device Inventory</a></li>
+<li><a href="it_whoholdswhat.php"><i class="fas fa-user-check"></i> Who Holds What</a></li>
+<li><a href="logout.php"><i class="fas fa-right-from-bracket"></i> Logout</a></li>
 </ul>
 
 <div class="sidebar-bottom">
-
 <div class="system-card">
 <p>IT Operations</p>
 <h4>Running</h4>
 <span>Real-time support monitoring</span>
 </div>
-
 </div>
 
 </aside>
@@ -328,10 +440,7 @@ Logout
 
 <div class="notification-wrapper" style="position:relative;">
 
-<button
-type="button"
-id="itNotifBtn"
-style="
+<button type="button" id="itNotifBtn" style="
 width:48px;
 height:48px;
 border:none;
@@ -342,13 +451,10 @@ cursor:pointer;
 position:relative;
 font-size:18px;
 color:#0D1E4C;
-"
->
-
+">
 <i class="fas fa-bell"></i>
 
 <?php if ($newTickets > 0) { ?>
-
 <span style="
 position:absolute;
 top:-6px;
@@ -367,14 +473,10 @@ justify-content:center;
 ">
 <?php echo $newTickets; ?>
 </span>
-
 <?php } ?>
-
 </button>
 
-<div
-id="itNotifDropdown"
-style="
+<div id="itNotifDropdown" style="
 display:none;
 position:absolute;
 top:62px;
@@ -386,70 +488,21 @@ padding:18px;
 box-shadow:0 20px 50px rgba(15,23,42,0.16);
 border:1px solid #e5eef5;
 z-index:9999;
-"
->
-
-<h3 style="
-font-size:18px;
-color:#0f172a;
-margin-bottom:14px;
 ">
+
+<h3 style="font-size:18px;color:#0f172a;margin-bottom:14px;">
 IT Support Notifications
 </h3>
 
 <?php if ($newTickets > 0) { ?>
-
-<div style="
-padding:16px;
-border-radius:18px;
-background:#f8fbff;
-border:1px solid #e8eef5;
-">
-
-<div style="
-display:flex;
-align-items:center;
-gap:12px;
-margin-bottom:10px;
-">
-
-<div style="
-width:42px;
-height:42px;
-border-radius:14px;
-background:#fee2e2;
-color:#991b1b;
-display:flex;
-align-items:center;
-justify-content:center;
-font-size:18px;
-">
-<i class="fas fa-ticket"></i>
-</div>
-
-<div>
-<h4 style="
-font-size:14px;
-color:#0f172a;
-margin-bottom:4px;
-">
+<div style="padding:16px;border-radius:18px;background:#f8fbff;border:1px solid #e8eef5;">
+<h4 style="font-size:14px;color:#0f172a;margin-bottom:4px;">
 <?php echo $newTickets; ?> New Ticket(s)
 </h4>
-
-<p style="
-font-size:12px;
-color:#64748b;
-line-height:1.5;
-">
+<p style="font-size:12px;color:#64748b;line-height:1.5;">
 New technical issues are waiting for IT Support review.
 </p>
-</div>
-
-</div>
-
-<a
-href="itsupport_tickets.php"
-style="
+<a href="itsupport_tickets.php" style="
 display:flex;
 align-items:center;
 justify-content:center;
@@ -459,90 +512,40 @@ background:linear-gradient(90deg,#0ea5a4,#14b8a6);
 color:white;
 font-weight:800;
 text-decoration:none;
-"
->
+margin-top:12px;
+">
 Open Tickets
 </a>
-
 </div>
-
 <?php } else { ?>
-
-<div style="
-padding:18px;
-border-radius:18px;
-background:#f8fafc;
-text-align:center;
-">
-
-<div style="
-width:58px;
-height:58px;
-margin:auto;
-margin-bottom:12px;
-border-radius:18px;
-background:#dcfce7;
-color:#166534;
-display:flex;
-align-items:center;
-justify-content:center;
-font-size:24px;
-">
-<i class="fas fa-circle-check"></i>
+<div style="padding:18px;border-radius:18px;background:#f8fafc;text-align:center;">
+<h4 style="font-size:15px;color:#0f172a;margin-bottom:6px;">No New Tickets</h4>
+<p style="font-size:12px;color:#64748b;line-height:1.5;">All technical issues are currently handled.</p>
 </div>
-
-<h4 style="
-font-size:15px;
-color:#0f172a;
-margin-bottom:6px;
-">
-No New Tickets
-</h4>
-
-<p style="
-font-size:12px;
-color:#64748b;
-line-height:1.5;
-">
-All technical issues are currently handled.
-</p>
-
-</div>
-
 <?php } ?>
 
 </div>
-
 </div>
 
 <div class="admin-profile">
-
-<div class="admin-avatar">
-<?php echo strtoupper(substr($full_name,0,1)); ?>
-</div>
-
+<div class="admin-avatar"><?php echo strtoupper(substr($full_name,0,1)); ?></div>
 <div>
 <h4><?php echo htmlspecialchars($full_name); ?></h4>
 <span>IT Support</span>
 </div>
-
 </div>
 
 <a href="logout.php" class="logout-btn">Logout</a>
 
 </div>
-
 </header>
 
 <div class="hero-support">
-
 <h2>Technical Operations Center 🛠️</h2>
-
 <p>
 Monitor support requests, resolve technical issues,
 track assigned tickets, and maintain operational system stability.
 </p>
-
 </div>
 
 <div class="quick-grid">
@@ -580,9 +583,7 @@ track assigned tickets, and maintain operational system stability.
 </div>
 
 <table>
-
 <thead>
-
 <tr>
 <th>ID</th>
 <th>Issue</th>
@@ -592,123 +593,73 @@ track assigned tickets, and maintain operational system stability.
 <th>Created</th>
 <th>Actions</th>
 </tr>
-
 </thead>
 
 <tbody>
 
 <?php if ($tickets && mysqli_num_rows($tickets) > 0): ?>
-
 <?php while($row = mysqli_fetch_assoc($tickets)): ?>
 
 <tr>
-
 <td>#<?php echo $row['id']; ?></td>
 
 <td>
-
-<div class="ticket-title">
-<?php echo htmlspecialchars($row['subject']); ?>
-</div>
-
-<div class="ticket-desc">
-<?php echo htmlspecialchars($row['description']); ?>
-</div>
-
+<div class="ticket-title"><?php echo htmlspecialchars($row['subject']); ?></div>
+<div class="ticket-desc"><?php echo htmlspecialchars($row['description']); ?></div>
 </td>
 
-<td>
-<?php echo htmlspecialchars($row['employee_name']); ?>
-</td>
+<td><?php echo htmlspecialchars($row['employee_name'] ?? 'Employee'); ?></td>
 
 <td>
-
 <?php
 $statusClass = "pending";
-
-if($row['status'] == "In Progress"){
-$statusClass = "progress";
-}
-
-if($row['status'] == "Resolved"){
-$statusClass = "resolved";
-}
+if($row['status'] == "In Progress") $statusClass = "progress";
+if($row['status'] == "Resolved") $statusClass = "resolved";
 ?>
-
 <span class="ticket-status <?php echo $statusClass; ?>">
 <?php echo htmlspecialchars($row['status']); ?>
 </span>
-
 </td>
 
 <td>
-
 <?php
 if(!empty($row['assigned_name'])){
-echo htmlspecialchars($row['assigned_name']);
+    echo htmlspecialchars($row['assigned_name']);
 }else{
-echo "Unassigned";
+    echo "Unassigned";
 }
 ?>
-
 </td>
 
-<td>
-<?php echo $row['created_at']; ?>
-</td>
+<td><?php echo $row['created_at']; ?></td>
 
-<td style="display:flex; gap:8px;">
+<td style="display:flex; gap:8px; flex-wrap:wrap;">
 
 <?php if($row['status'] == "Pending"): ?>
-
 <form method="POST">
-
-<input
-type="hidden"
-name="ticket_id"
-value="<?php echo $row['id']; ?>"
->
-
-<button
-type="submit"
-name="assign_ticket"
-class="action-btn assign-btn"
->
-Assign
-</button>
-
+<input type="hidden" name="ticket_id" value="<?php echo $row['id']; ?>">
+<button type="submit" name="assign_ticket" class="action-btn assign-btn">Assign</button>
 </form>
-
 <?php endif; ?>
 
 <?php if($row['status'] != "Resolved"): ?>
-
 <form method="POST">
-
-<input
-type="hidden"
-name="ticket_id"
-value="<?php echo $row['id']; ?>"
->
-
-<button
-type="submit"
-name="resolve_ticket"
-class="action-btn resolve-btn"
->
-Resolve
-</button>
-
+<input type="hidden" name="ticket_id" value="<?php echo $row['id']; ?>">
+<button type="submit" name="resolve_ticket" class="action-btn resolve-btn">Resolve</button>
 </form>
+<?php endif; ?>
 
+<?php if((int)$row['it_seen'] === 0): ?>
+<form method="POST">
+<input type="hidden" name="ticket_id" value="<?php echo $row['id']; ?>">
+<button type="submit" name="mark_ticket_seen" class="action-btn seen-btn">Seen</button>
+</form>
 <?php endif; ?>
 
 </td>
-
 </tr>
 
 <?php endwhile; ?>
-
 <?php else: ?>
 
 <tr>
@@ -718,7 +669,6 @@ Resolve
 <?php endif; ?>
 
 </tbody>
-
 </table>
 
 </div>
@@ -727,39 +677,33 @@ Resolve
 </div>
 
 <script>
-
 document.addEventListener("DOMContentLoaded", function () {
+    const notifBtn = document.getElementById("itNotifBtn");
+    const notifDropdown = document.getElementById("itNotifDropdown");
+    const popup = document.getElementById("newTicketPopup");
 
-const notifBtn = document.getElementById("itNotifBtn");
-const notifDropdown = document.getElementById("itNotifDropdown");
+    if (popup) {
+        popup.style.display = "flex";
+    }
 
-if(notifBtn && notifDropdown){
+    if(notifBtn && notifDropdown){
+        notifBtn.addEventListener("click", function(e){
+            e.preventDefault();
+            e.stopPropagation();
 
-notifBtn.addEventListener("click", function(e){
+            notifDropdown.style.display =
+                notifDropdown.style.display === "block" ? "none" : "block";
+        });
 
-e.preventDefault();
-e.stopPropagation();
+        notifDropdown.addEventListener("click", function(e){
+            e.stopPropagation();
+        });
 
-if(notifDropdown.style.display === "block"){
-notifDropdown.style.display = "none";
-}else{
-notifDropdown.style.display = "block";
-}
-
+        document.addEventListener("click", function(){
+            notifDropdown.style.display = "none";
+        });
+    }
 });
-
-notifDropdown.addEventListener("click", function(e){
-e.stopPropagation();
-});
-
-document.addEventListener("click", function(){
-notifDropdown.style.display = "none";
-});
-
-}
-
-});
-
 </script>
 
 </body>
