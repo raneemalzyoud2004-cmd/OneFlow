@@ -11,6 +11,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'employee') {
 }
 
 include("config.php");
+require_once "notification_helper.php";
 
 $user_id = $_SESSION['user_id'];
 $full_name = $_SESSION['full_name'];
@@ -35,7 +36,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         $stmt->bind_param("issss", $user_id, $full_name, $leave_type, $start_date, $end_date);
 
-        if ($stmt->execute()) {
+        if ($stmt->execute()) {$title = "New Leave Request";
+$message = $full_name . " submitted a leave request.";
+
+mysqli_query($conn, "
+    INSERT INTO notifications (role, title, message, type)
+    VALUES ('hr', '$title', '$message', 'leave')
+");
             $_SESSION['success_message'] = "Leave request submitted successfully!";
             header("Location: leaverequests_employee.php");
             exit();

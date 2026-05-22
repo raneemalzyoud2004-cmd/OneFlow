@@ -34,7 +34,23 @@ if ($result) $pendingAccounts = mysqli_fetch_assoc($result)['total'];
 $totalNotifications = $pendingLeaves + $attendanceAlerts + $newApplicants + $pendingAccounts;
 
 $notifications = [];
+$realNotifications = mysqli_query($conn, "
+    SELECT * FROM notifications
+    WHERE role = 'hr'
+    ORDER BY created_at DESC
+");
 
+if ($realNotifications) {
+    while ($row = mysqli_fetch_assoc($realNotifications)) {
+        $notifications[] = [
+            "icon" => "fas fa-bell",
+            "color" => "teal",
+            "title" => $row['title'],
+            "details" => $row['message'],
+            "time" => $row['created_at']
+        ];
+    }
+}
 $leaveQuery = mysqli_query($conn, "
     SELECT employee_name, leave_type, status, created_at
     FROM leave_requests
