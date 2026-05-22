@@ -11,7 +11,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'hr') {
     exit();
 }
 
-$full_name = $_SESSION['full_name'];
+$full_name = $_SESSION['full_name'] ?? 'HR';
 $error = "";
 
 $employees = mysqli_query($conn, "
@@ -32,7 +32,7 @@ if (isset($_POST['add_attendance'])) {
     if ($employee_id == 0 || empty($attendance_date) || empty($status)) {
         $error = "Please fill all required fields.";
     } else {
-        if (!empty($check_in) && $check_in > "09:00" && $status == "Present") {
+        if (!empty($check_in) && $check_in > "09:00:00" && $status == "Present") {
             $status = "Late";
             $notes = trim($notes . " Auto marked as late because check-in is after 09:00 AM.");
         }
@@ -43,7 +43,7 @@ if (isset($_POST['add_attendance'])) {
             AND attendance_date='$attendance_date'
         ");
 
-        if (mysqli_num_rows($checkDuplicate) > 0) {
+        if ($checkDuplicate && mysqli_num_rows($checkDuplicate) > 0) {
             $error = "Attendance for this employee already exists on this date.";
         } else {
             $insert = mysqli_query($conn, "
@@ -64,7 +64,7 @@ if (isset($_POST['add_attendance'])) {
                 header("Location: attendance.php");
                 exit();
             } else {
-                $error = "Failed to add attendance record.";
+                $error = "Failed to add attendance record: " . mysqli_error($conn);
             }
         }
     }

@@ -61,248 +61,295 @@ if ($birthdayNotification) {
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
-.birthday-employee-banner{
-    background:linear-gradient(135deg,#f97316,#ec4899);
-    color:white;
-    padding:26px 30px;
-    border-radius:28px;
-    margin-bottom:26px;
-    box-shadow:0 18px 40px rgba(236,72,153,0.25);
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:24px;
+.search-box {
+    position: relative;
+    width: 320px;
 }
 
-.birthday-employee-banner h2{
-    font-size:30px;
-    margin-bottom:10px;
+.search-box i {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #14b8a6;
+    font-size: 15px;
+    z-index: 2;
 }
 
-.birthday-employee-banner p{
-    line-height:1.7;
-    font-size:16px;
+.search-box input {
+    width: 100%;
+    height: 52px;
+    border-radius: 18px;
+    border: 1px solid #dbe7f0;
+    background: white;
+    padding: 0 18px 0 48px;
+    font-size: 14px;
+    outline: none;
+    transition: 0.3s ease;
+    box-shadow: 0 8px 20px rgba(15,23,42,0.05);
 }
 
-.birthday-gift-box{
-    margin-top:14px;
-    display:inline-flex;
-    align-items:center;
-    gap:10px;
-    padding:10px 16px;
-    border-radius:999px;
-    background:rgba(255,255,255,0.22);
-    font-weight:900;
+.search-box input:focus {
+    border-color: #14b8a6;
+    box-shadow: 0 0 0 4px rgba(20,184,166,0.12);
 }
 
-.birthday-gift-icon{
-    width:82px;
-    height:82px;
-    border-radius:26px;
-    background:rgba(255,255,255,0.2);
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size:40px;
-    flex-shrink:0;
+.no-search-results {
+    display: none;
+    background: #fff7ed;
+    color: #9a3412;
+    padding: 16px 18px;
+    border-radius: 18px;
+    font-weight: 800;
+    margin-bottom: 20px;
+    border: 1px solid #fed7aa;
 }
 
-.employee-dashboard-grid{
-    display:grid;
-    grid-template-columns:1.25fr 1fr;
-    gap:24px;
-    margin-top:28px;
+.birthday-employee-banner {
+    background: linear-gradient(135deg,#f97316,#ec4899);
+    color: white;
+    padding: 26px 30px;
+    border-radius: 28px;
+    margin-bottom: 26px;
+    box-shadow: 0 18px 40px rgba(236,72,153,0.25);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
 }
 
-.employee-column{
-    display:flex;
-    flex-direction:column;
-    gap:24px;
+.birthday-employee-banner h2 {
+    font-size: 30px;
+    margin-bottom: 10px;
 }
 
-.employee-action-grid{
-    display:grid;
-    grid-template-columns:repeat(2,1fr);
-    gap:18px;
+.birthday-employee-banner p {
+    line-height: 1.7;
+    font-size: 16px;
 }
 
-.employee-action-card{
-    background:linear-gradient(135deg,#f8fbff,#eef8f8);
-    border:1px solid #e3eef2;
-    border-radius:22px;
-    padding:22px;
-    text-decoration:none;
-    transition:0.3s;
+.birthday-gift-box {
+    margin-top: 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.22);
+    font-weight: 900;
 }
 
-.employee-action-card:hover{
-    transform:translateY(-6px);
-    box-shadow:0 18px 35px rgba(20,184,166,0.16);
+.birthday-gift-icon {
+    width: 82px;
+    height: 82px;
+    border-radius: 26px;
+    background: rgba(255,255,255,0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 40px;
+    flex-shrink: 0;
 }
 
-.employee-action-card i{
-    width:54px;
-    height:54px;
-    border-radius:16px;
-    background:linear-gradient(135deg,#16c7c1,#22c55e);
-    color:white;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    font-size:20px;
-    margin-bottom:16px;
+.employee-dashboard-grid {
+    display: grid;
+    grid-template-columns: 1.25fr 1fr;
+    gap: 24px;
+    margin-top: 28px;
 }
 
-.employee-action-card.purple i{
-    background:linear-gradient(135deg,#9333ea,#c084fc);
+.employee-column {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
 }
 
-.employee-action-card.blue i{
-    background:linear-gradient(135deg,#2563eb,#60a5fa);
+.employee-action-grid {
+    display: grid;
+    grid-template-columns: repeat(2,1fr);
+    gap: 18px;
 }
 
-.employee-action-card.orange i{
-    background:linear-gradient(135deg,#f97316,#ec4899);
+.employee-action-card {
+    background: linear-gradient(135deg,#f8fbff,#eef8f8);
+    border: 1px solid #e3eef2;
+    border-radius: 22px;
+    padding: 22px;
+    text-decoration: none;
+    transition: 0.3s;
 }
 
-.employee-action-card h4{
-    color:#0D1E4C;
-    font-size:19px;
-    margin-bottom:8px;
+.employee-action-card:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 18px 35px rgba(20,184,166,0.16);
 }
 
-.employee-action-card p{
-    color:#64748b;
-    font-size:14px;
-    line-height:1.6;
+.employee-action-card i {
+    width: 54px;
+    height: 54px;
+    border-radius: 16px;
+    background: linear-gradient(135deg,#16c7c1,#22c55e);
+    color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    margin-bottom: 16px;
 }
 
-.employee-note-card{
-    background:linear-gradient(135deg,#0D1E4C,#14b8a6);
-    color:white;
-    border-radius:24px;
-    padding:24px;
+.employee-action-card.purple i {
+    background: linear-gradient(135deg,#9333ea,#c084fc);
 }
 
-.employee-note-card h2{
-    font-size:24px;
-    margin-bottom:10px;
+.employee-action-card.blue i {
+    background: linear-gradient(135deg,#2563eb,#60a5fa);
 }
 
-.employee-note-card p{
-    line-height:1.7;
-    opacity:0.92;
+.employee-action-card.orange i {
+    background: linear-gradient(135deg,#f97316,#ec4899);
 }
 
-.employee-timeline{
-    display:flex;
-    flex-direction:column;
-    gap:16px;
+.employee-action-card h4 {
+    color: #0D1E4C;
+    font-size: 19px;
+    margin-bottom: 8px;
 }
 
-.employee-timeline-item{
-    display:flex;
-    gap:14px;
-    align-items:flex-start;
-    padding:16px;
-    border-radius:20px;
-    background:#f8fafc;
-    border:1px solid #e2e8f0;
+.employee-action-card p {
+    color: #64748b;
+    font-size: 14px;
+    line-height: 1.6;
 }
 
-.timeline-icon{
-    width:44px;
-    height:44px;
-    border-radius:14px;
-    background:linear-gradient(135deg,#0ea5a4,#14b8a6);
-    color:white;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    flex-shrink:0;
+.employee-note-card {
+    background: linear-gradient(135deg,#0D1E4C,#14b8a6);
+    color: white;
+    border-radius: 24px;
+    padding: 24px;
 }
 
-.employee-timeline-item h4{
-    color:#0D1E4C;
-    margin-bottom:5px;
+.employee-note-card h2 {
+    font-size: 24px;
+    margin-bottom: 10px;
 }
 
-.employee-timeline-item p{
-    color:#64748b;
-    font-size:13px;
-    line-height:1.5;
+.employee-note-card p {
+    line-height: 1.7;
+    opacity: 0.92;
 }
 
-.notification-wrapper{
-    position:relative;
+.employee-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
 }
 
-.employee-notification-dropdown{
-    display:none;
-    position:absolute;
-    top:62px;
-    right:0;
-    width:360px;
-    background:white;
-    border-radius:18px;
-    padding:16px;
-    box-shadow:0 20px 45px rgba(15,23,42,0.16);
-    border:1px solid #e5eef5;
-    z-index:9999;
+.employee-timeline-item {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+    padding: 16px;
+    border-radius: 20px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
 }
 
-.employee-notification-dropdown h3{
-    font-size:17px;
-    color:#0D1E4C;
-    margin-bottom:12px;
+.timeline-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: linear-gradient(135deg,#0ea5a4,#14b8a6);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
-.notification-item{
-    padding:14px;
-    border-radius:14px;
-    background:#f8fafc;
-    border:1px solid #e2e8f0;
-    margin-bottom:10px;
-    cursor:pointer;
-    transition:.25s;
+.employee-timeline-item h4 {
+    color: #0D1E4C;
+    margin-bottom: 5px;
 }
 
-.notification-item:hover{
-    background:#eef8ff;
-    transform:translateY(-2px);
+.employee-timeline-item p {
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.5;
 }
 
-.notification-item h4{
-    color:#0D1E4C;
-    margin-bottom:6px;
+.notification-wrapper {
+    position: relative;
 }
 
-.notification-item p{
-    color:#64748b;
-    font-size:13px;
-    line-height:1.5;
+.employee-notification-dropdown {
+    display: none;
+    position: absolute;
+    top: 62px;
+    right: 0;
+    width: 360px;
+    background: white;
+    border-radius: 18px;
+    padding: 16px;
+    box-shadow: 0 20px 45px rgba(15,23,42,0.16);
+    border: 1px solid #e5eef5;
+    z-index: 9999;
 }
 
-.notification-item small{
-    display:block;
-    margin-top:8px;
-    color:#94a3b8;
-    font-size:12px;
-    font-weight:700;
+.employee-notification-dropdown h3 {
+    font-size: 17px;
+    color: #0D1E4C;
+    margin-bottom: 12px;
 }
 
-@media(max-width:1100px){
-    .employee-dashboard-grid{
-        grid-template-columns:1fr;
+.notification-item {
+    padding: 14px;
+    border-radius: 14px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: .25s;
+}
+
+.notification-item:hover {
+    background: #eef8ff;
+    transform: translateY(-2px);
+}
+
+.notification-item h4 {
+    color: #0D1E4C;
+    margin-bottom: 6px;
+}
+
+.notification-item p {
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.notification-item small {
+    display: block;
+    margin-top: 8px;
+    color: #94a3b8;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+@media(max-width:1100px) {
+    .employee-dashboard-grid {
+        grid-template-columns: 1fr;    }
+
+    .employee-action-grid {
+        grid-template-columns: 1fr;
     }
 
-    .employee-action-grid{
-        grid-template-columns:1fr;
+    .birthday-employee-banner {
+        align-items: flex-start;
+        flex-direction: column;
     }
 
-    .birthday-employee-banner{
-        align-items:flex-start;
-        flex-direction:column;
+    .search-box {
+        width: 100%;
     }
 }
 </style>
@@ -352,7 +399,26 @@ if ($birthdayNotification) {
     <div class="topbar-right">
         <div class="search-box">
             <i class="fas fa-search"></i>
-            <input type="text" id="employeeSearch" placeholder="Search...">
+
+            <input 
+                type="text" 
+                id="employeeSearch" 
+                list="employeeSearchList"
+                placeholder="Search employee dashboard..."
+                oninput="searchEmployeeDashboard()"
+            >
+
+            <datalist id="employeeSearchList">
+                <option value="My Tasks"></option>
+                <option value="Leave Requests"></option>
+                <option value="Attendance"></option>
+                <option value="Schedule"></option>
+                <option value="Report Issue"></option>
+                <option value="Notifications"></option>
+                <option value="Birthday"></option>
+                <option value="Today’s Focus"></option>
+                <option value="My Activity"></option>
+            </datalist>
         </div>
 
         <div class="notification-wrapper">
@@ -387,8 +453,12 @@ if ($birthdayNotification) {
     </div>
 </header>
 
+<div id="noEmployeeSearchResults" class="no-search-results">
+    No matching result found in Employee Dashboard.
+</div>
+
 <?php if ($birthdayNotification) { ?>
-<section class="birthday-employee-banner searchable-item">
+<section class="birthday-employee-banner employee-searchable">
     <div>
         <h2>Happy Birthday, <?php echo htmlspecialchars($full_name); ?>!</h2>
         <p><?php echo htmlspecialchars($birthdayNotification['birthday_message']); ?></p>
@@ -405,7 +475,7 @@ if ($birthdayNotification) {
 </section>
 <?php } ?>
 
-<section class="hero-banner searchable-item">
+<section class="hero-banner employee-searchable">
     <div class="hero-text">
         <h2>Welcome back, <?php echo htmlspecialchars($full_name); ?></h2>
         <p>You can manage your tasks, leave requests, attendance, and notifications from one place.</p>
@@ -423,7 +493,7 @@ if ($birthdayNotification) {
 </section>
 
 <section class="cards">
-    <div class="card searchable-item">
+    <div class="card employee-searchable">
         <div class="card-icon"><i class="fas fa-list-check"></i></div>
         <div class="card-info">
             <h3>3</h3>
@@ -432,7 +502,7 @@ if ($birthdayNotification) {
         </div>
     </div>
 
-    <div class="card searchable-item">
+    <div class="card employee-searchable">
         <div class="card-icon"><i class="fas fa-calendar-check"></i></div>
         <div class="card-info">
             <h3>95%</h3>
@@ -441,7 +511,7 @@ if ($birthdayNotification) {
         </div>
     </div>
 
-    <div class="card searchable-item">
+    <div class="card employee-searchable">
         <div class="card-icon"><i class="fas fa-clock"></i></div>
         <div class="card-info">
             <h3>1</h3>
@@ -450,7 +520,7 @@ if ($birthdayNotification) {
         </div>
     </div>
 
-    <div class="card searchable-item">
+    <div class="card employee-searchable">
         <div class="card-icon"><i class="fas fa-bell"></i></div>
         <div class="card-info">
             <h3><?php echo $notificationCount; ?></h3>
@@ -462,31 +532,31 @@ if ($birthdayNotification) {
 
 <section class="employee-dashboard-grid">
     <div class="employee-column">
-        <div class="panel">
+        <div class="panel employee-searchable">
             <div class="panel-header">
                 <h2>Quick Access</h2>
             </div>
 
             <div class="employee-action-grid">
-                <a href="mytasks.php" class="employee-action-card searchable-item">
+                <a href="mytasks.php" class="employee-action-card employee-searchable">
                     <i class="fas fa-list-check"></i>
                     <h4>My Tasks</h4>
                     <p>Review assigned tasks and track your work progress.</p>
                 </a>
 
-                <a href="leaverequests_employee.php" class="employee-action-card purple searchable-item">
+                <a href="leaverequests_employee.php" class="employee-action-card purple employee-searchable">
                     <i class="fas fa-file-circle-check"></i>
                     <h4>Leave Requests</h4>
                     <p>Submit leave requests and follow request status.</p>
                 </a>
 
-                <a href="myattendance.php" class="employee-action-card blue searchable-item">
+                <a href="myattendance.php" class="employee-action-card blue employee-searchable">
                     <i class="fas fa-calendar-check"></i>
                     <h4>Attendance</h4>
                     <p>View your check-in, check-out, and attendance history.</p>
                 </a>
 
-                <a href="report_issue.php" class="employee-action-card orange searchable-item">
+                <a href="report_issue.php" class="employee-action-card orange employee-searchable">
                     <i class="fas fa-headset"></i>
                     <h4>Report Issue</h4>
                     <p>Send technical issues directly to IT Support.</p>
@@ -496,21 +566,21 @@ if ($birthdayNotification) {
     </div>
 
     <div class="employee-column">
-        <div class="employee-note-card searchable-item">
-            <h2>Today’s Focus</h2>
+<div class="employee-note-card employee-searchable">
+            <h2>Today’s Focus ✨</h2>
             <p>
                 Keep your task updates clear, check your attendance regularly,
                 and report any technical issue as soon as it appears.
             </p>
         </div>
 
-        <div class="panel">
+        <div class="panel employee-searchable">
             <div class="panel-header">
                 <h2>My Activity</h2>
             </div>
 
             <div class="employee-timeline">
-                <div class="employee-timeline-item searchable-item">
+                <div class="employee-timeline-item employee-searchable">
                     <div class="timeline-icon"><i class="fas fa-user-check"></i></div>
                     <div>
                         <h4>Dashboard opened</h4>
@@ -518,7 +588,7 @@ if ($birthdayNotification) {
                     </div>
                 </div>
 
-                <div class="employee-timeline-item searchable-item">
+                <div class="employee-timeline-item employee-searchable">
                     <div class="timeline-icon"><i class="fas fa-list-check"></i></div>
                     <div>
                         <h4>Tasks summary ready</h4>
@@ -526,8 +596,8 @@ if ($birthdayNotification) {
                     </div>
                 </div>
 
-                <?php if ($notificationCount > 0) { ?>
-                <div class="employee-timeline-item searchable-item">
+<?php if ($notificationCount > 0) { ?>
+                <div class="employee-timeline-item employee-searchable">
                     <div class="timeline-icon"><i class="fas fa-bell"></i></div>
                     <div>
                         <h4>New notifications available</h4>
@@ -547,109 +617,133 @@ if ($birthdayNotification) {
 const employeeBell = document.querySelector(".notification-bell");
 const employeeDropdown = document.getElementById("employeeNotificationDropdown");
 
-employeeBell.addEventListener("click", function(e){
-    e.stopPropagation();
+if (employeeBell && employeeDropdown) {
+    employeeBell.addEventListener("click", function(e) {
+        e.stopPropagation();
 
-    if(employeeDropdown.style.display === "block"){
+        if (employeeDropdown.style.display === "block") {
+            employeeDropdown.style.display = "none";
+        } else {
+            employeeDropdown.style.display = "block";
+        }
+    });
+
+    employeeDropdown.addEventListener("click", function(e) {
+        e.stopPropagation();
+    });
+
+    document.addEventListener("click", function() {
         employeeDropdown.style.display = "none";
-    }else{
-        employeeDropdown.style.display = "block";
+    });
+}
+
+function getEmployeeNotificationLink(title, message) {
+    const text = (title + " " + message).toLowerCase();
+
+    if (text.includes("task") || text.includes("ticket")) {
+        return "mytasks.php";
     }
-});
 
-employeeDropdown.addEventListener("click", function(e){
-    e.stopPropagation();
-});
+    if (text.includes("leave")) {
+        return "leaverequests_employee.php";
+    }
 
-document.addEventListener("click", function(){
-    employeeDropdown.style.display = "none";
-});
+    if (text.includes("attendance") || text.includes("check")) {
+        return "myattendance.php";
+    }
 
-function updateEmployeeNotifications(){
+    if (text.includes("schedule") || text.includes("meeting")) {
+        return "myschedule.php";
+    }
+
+    if (text.includes("issue") || text.includes("support")) {
+        return "report_issue.php";
+    }
+
+    return "notificationsemployee.php";
+}
+
+function updateEmployeeNotifications() {
+    if (!employeeBell || !employeeDropdown) return;
+
     fetch("get_notifications.php")
-    .then(response => response.json())
-    .then(data => {
-        if(!data.success) return;
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) return;
 
-        let badge = document.querySelector(".notification-bell .notif-count");
+            let badge = document.querySelector(".notification-bell .notif-count");
 
-        if(data.count > 0){
-            if(badge){
-                badge.textContent = data.count;
-            }else{
-                const span = document.createElement("span");
-                span.className = "notif-count";
-                span.textContent = data.count;
-                employeeBell.appendChild(span);
-            }
-        }else{
-            if(badge){
+            if (data.count > 0) {
+                if (badge) {
+                    badge.textContent = data.count;
+                } else {
+                    const span = document.createElement("span");
+                    span.className = "notif-count";
+                    span.textContent = data.count;
+                    employeeBell.appendChild(span);
+                }
+            } else if (badge) {
                 badge.remove();
             }
-        }
 
-        employeeDropdown.innerHTML = `
-            <h3>Notifications</h3>
-        `;
+            employeeDropdown.innerHTML = "<h3>Notifications</h3>";
 
-        if(data.notifications.length === 0){
-            employeeDropdown.innerHTML += `
-                <div class="notification-item">
-                    <h4>No notifications yet</h4>
-                    <p>Your latest updates will appear here.</p>
-                </div>
-            `;
-
-            return;
-        }
-
-        data.notifications.forEach(notification => {
-            let targetPage = "notificationsemployee.php";
-
-            if(notification.title.toLowerCase().includes("task")){
-                targetPage = "mytasks.php";
+            if (!data.notifications || data.notifications.length === 0) {
+                employeeDropdown.innerHTML += `
+                    <div class="notification-item">
+                        <h4>No notifications yet</h4>
+                        <p>Your latest updates will appear here.</p>
+                    </div>
+                `;
+                return;
             }
 
-            if(notification.title.toLowerCase().includes("leave")){
-                targetPage = "leaverequests_employee.php";
-            }
+            data.notifications.forEach(notification => {
+                const item = document.createElement("div");
+                item.className = "notification-item";
 
-            const item = document.createElement("div");
-            item.className = "notification-item";
+                item.innerHTML = `
+                    <h4>${notification.title}</h4>
+                    <p>${notification.message}</p>
+                    <small>${notification.created_at}</small>
+                `;
 
-            item.innerHTML = `
-                <h4>${notification.title}</h4>
-                <p>${notification.message}</p>
-                <small>${notification.created_at}</small>
-            `;
+                item.addEventListener("click", function() {
+                    window.location.href = getEmployeeNotificationLink(notification.title, notification.message);
+                });
 
-            item.addEventListener("click", function(){
-                window.location.href = targetPage;
+                employeeDropdown.appendChild(item);
             });
+        })
+        .catch(error => console.log(error));
+}
 
-            employeeDropdown.appendChild(item);
-        });
+function searchEmployeeDashboard() {
+    const input = document.getElementById("employeeSearch");
+    const searchValue = input.value.toLowerCase().trim();
+    const items = document.querySelectorAll(".employee-searchable");
+    const noResults = document.getElementById("noEmployeeSearchResults");
+
+    let found = false;
+
+    items.forEach(function(item) {
+        const text = item.innerText.toLowerCase();
+
+        if (searchValue === "" || text.includes(searchValue)) {
+            item.style.display = "";
+            found = true;
+        } else {
+            item.style.display = "none";
+        }
     });
+
+    if (noResults) {
+        noResults.style.display = found ? "none" : "block";
+    }
 }
 
 updateEmployeeNotifications();
 setInterval(updateEmployeeNotifications, 5000);
-
-document.addEventListener("DOMContentLoaded", function () {
-    const searchInput = document.getElementById("employeeSearch");
-    const items = document.querySelectorAll(".searchable-item");
-
-    if (searchInput) {
-        searchInput.addEventListener("input", function () {
-            const value = this.value.toLowerCase().trim();
-
-            items.forEach(function(item) {
-                const text = item.innerText.toLowerCase();
-                item.style.display = text.includes(value) ? "" : "none";
-            });
-        });
-    }
-});
 </script>
 
 </body>
