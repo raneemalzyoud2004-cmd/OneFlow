@@ -47,9 +47,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
                 } else {
 
-$hashed_input = hash('sha256', $password_input);
+$stored_password = $row['password'];
+$sha_input = hash('sha256', $password_input);
 
-if ($row['password'] === $hashed_input) {
+if (
+    $stored_password === $password_input ||
+    $stored_password === $sha_input ||
+    password_verify($password_input, $stored_password)
+) {
                         $reset_sql = "UPDATE users SET failed_attempts = 0 WHERE id = ?";
                         $reset_stmt = mysqli_prepare($conn, $reset_sql);
                         if ($reset_stmt) {
