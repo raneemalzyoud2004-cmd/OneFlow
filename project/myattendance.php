@@ -2,6 +2,8 @@
 session_start();
 include "config.php";
 
+date_default_timezone_set("Asia/Amman");
+
 header("Cache-Control: no-cache, no-store, must-revalidate");
 header("Pragma: no-cache");
 header("Expires: 0");
@@ -100,7 +102,7 @@ $records = mysqli_query($conn, "
     SELECT * FROM attendance
     WHERE employee_id='$user_id'
     ORDER BY attendance_date DESC, id DESC
-    LIMIT 10
+    LIMIT 20
 ");
 
 $month = date("m");

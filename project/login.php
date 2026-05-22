@@ -4,6 +4,16 @@ include("config.php");
 
 $error = "";
 
+mysqli_query($conn, "
+    CREATE TABLE IF NOT EXISTS login_days (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        login_date DATE NOT NULL,
+        logout_date DATE NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+");
+
 if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
     if ($_SESSION['role'] === 'admin') {
         header("Location: dashboardadmin.php");
@@ -46,17 +56,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     $error = "Your account is not ready yet. Please complete account setup first.";
 
                 } else {
+                    $stored_password = $row['password'];
+                    $sha_input = hash('sha256', $password_input);
 
-$stored_password = $row['password'];
-$sha_input = hash('sha256', $password_input);
-
-if (
-    $stored_password === $password_input ||
-    $stored_password === $sha_input ||
-    password_verify($password_input, $stored_password)
-) {
+                    if (
+                        $stored_password === $password_input ||
+                        $stored_password === $sha_input ||
+                        password_verify($password_input, $stored_password)
+                    ) {
                         $reset_sql = "UPDATE users SET failed_attempts = 0 WHERE id = ?";
                         $reset_stmt = mysqli_prepare($conn, $reset_sql);
+
                         if ($reset_stmt) {
                             mysqli_stmt_bind_param($reset_stmt, "i", $row['id']);
                             mysqli_stmt_execute($reset_stmt);
@@ -66,11 +76,36 @@ if (
                         if (isset($row['last_login'])) {
                             $last_login_sql = "UPDATE users SET last_login = NOW() WHERE id = ?";
                             $last_login_stmt = mysqli_prepare($conn, $last_login_sql);
+
                             if ($last_login_stmt) {
                                 mysqli_stmt_bind_param($last_login_stmt, "i", $row['id']);
                                 mysqli_stmt_execute($last_login_stmt);
                                 mysqli_stmt_close($last_login_stmt);
                             }
+                        }
+
+                        $userId = (int)$row['id'];
+                        $today = date("Y-m-d");
+
+                        $checkLoginDay = mysqli_query($conn, "
+                            SELECT id 
+                            FROM login_days 
+                            WHERE user_id = $userId 
+                            AND login_date = '$today'
+                            ORDER BY id DESC
+                            LIMIT 1
+                        ");
+
+                        if ($checkLoginDay && mysqli_num_rows($checkLoginDay) > 0) {
+                            $loginDayRow = mysqli_fetch_assoc($checkLoginDay);
+                            $_SESSION['login_day_id'] = $loginDayRow['id'];
+                        } else {
+                            mysqli_query($conn, "
+                                INSERT INTO login_days (user_id, login_date)
+                                VALUES ($userId, '$today')
+                            ");
+
+                            $_SESSION['login_day_id'] = mysqli_insert_id($conn);
                         }
 
                         $_SESSION['user_id'] = $row['id'];
@@ -98,7 +133,6 @@ if (
                         }
 
                     } else {
-
                         if (in_array($row['role'], $protectedRoles)) {
                             $current_attempts = isset($row['failed_attempts']) ? (int)$row['failed_attempts'] : 0;
                             $new_attempts = $current_attempts + 1;
@@ -183,7 +217,7 @@ if (
 
             <?php if (!empty($error)) { ?>
                 <p style="color:red; margin-bottom:15px; text-align:center;">
-                    <?php echo $error; ?>
+                    <?php echo htmlspecialchars($error); ?>
                 </p>
             <?php } ?>
 

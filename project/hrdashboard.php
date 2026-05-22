@@ -264,6 +264,7 @@ $birthdayMonthUsers = mysqli_query($conn, "
 
 $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -276,6 +277,39 @@ $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
 <style>
+.search-box {
+    position: relative;
+    width: 340px;
+}
+
+.search-box i {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #14b8a6;
+    font-size: 15px;
+    z-index: 2;
+}
+
+.search-box input {
+    width: 100%;
+    height: 52px;
+    border-radius: 18px;
+    border: 1px solid #dbe7f0;
+    background: white;
+    padding: 0 18px 0 48px;
+    font-size: 14px;
+    outline: none;
+    transition: 0.3s ease;
+    box-shadow: 0 8px 20px rgba(15,23,42,0.05);
+}
+
+.search-box input:focus {
+    border-color: #14b8a6;
+    box-shadow: 0 0 0 4px rgba(20,184,166,0.12);
+}
+
 .hr-dashboard-grid {
     display: grid;
     grid-template-columns: 1.35fr 1fr;
@@ -304,6 +338,17 @@ $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
 .hr-message.error {
     background: #fee2e2;
     color: #991b1b;
+}
+
+.no-search-results {
+    display: none;
+    background: #fff7ed;
+    color: #9a3412;
+    padding: 16px 18px;
+    border-radius: 18px;
+    font-weight: 800;
+    margin-bottom: 20px;
+    border: 1px solid #fed7aa;
 }
 
 .quick-actions {
@@ -579,6 +624,11 @@ $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
     color: #166534;
 }
 
+.todo-badge.passed {
+    background: #e2e8f0;
+    color: #475569;
+}
+
 .todo-delete-btn {
     width: 42px;
     height: 42px;
@@ -723,6 +773,10 @@ $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
         flex-direction: column;
         align-items: flex-start;
     }
+
+    .search-box {
+        width: 100%;
+    }
 }
 </style>
 </head>
@@ -771,7 +825,27 @@ $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
     <div class="topbar-right">
         <div class="search-box">
             <i class="fas fa-search"></i>
-            <input type="text" placeholder="Search employees, requests, reports...">
+
+            <input 
+                type="text" 
+                id="hrSearch"
+                list="hrSearchList"
+                placeholder="Search HR dashboard..."
+                oninput="searchHRDashboard()"
+            >
+
+            <datalist id="hrSearchList">
+                <option value="Add Employee"></option>
+                <option value="Approve Leaves"></option>
+                <option value="Recruitment"></option>
+                <option value="Birthdays"></option>
+                <option value="HR To-Do List"></option>
+                <option value="Recent Activity"></option>
+                <option value="Leave Requests"></option>
+                <option value="Birthday Notifications"></option>
+                <option value="Attention Alerts"></option>
+                <option value="Total Employees"></option>
+            </datalist>
         </div>
 
         <div class="icon-btn notification-bell">
@@ -801,7 +875,11 @@ $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
     <div class="hr-message error"><?php echo htmlspecialchars($errorMessage); ?></div>
 <?php } ?>
 
-<section class="hero-banner">
+<div id="noSearchResults" class="no-search-results">
+    No matching result found in HR dashboard.
+</div>
+
+<section class="hero-banner hr-searchable">
     <div class="hero-text">
         <h2>Welcome back, <?php echo htmlspecialchars($full_name); ?> 👋</h2>
         <p>
@@ -823,7 +901,7 @@ $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
 </section>
 
 <section class="cards">
-    <div class="card">
+    <div class="card hr-searchable">
         <div class="card-icon"><i class="fas fa-users"></i></div>
         <div class="card-info">
             <h3><?php echo $totalEmployees; ?></h3>
@@ -832,7 +910,7 @@ $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
         </div>
     </div>
 
-    <div class="card">
+    <div class="card hr-searchable">
         <div class="card-icon"><i class="fas fa-calendar-check"></i></div>
         <div class="card-info">
             <h3><?php echo $leaveRequests; ?></h3>
@@ -841,7 +919,7 @@ $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
         </div>
     </div>
 
-    <div class="card">
+    <div class="card hr-searchable">
         <div class="card-icon"><i class="fas fa-cake-candles"></i></div>
         <div class="card-info">
             <h3><?php echo $todayBirthdayCount; ?></h3>
@@ -850,7 +928,7 @@ $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
         </div>
     </div>
 
-    <div class="card">
+    <div class="card hr-searchable">
         <div class="card-icon"><i class="fas fa-clock"></i></div>
         <div class="card-info">
             <h3><?php echo $attendanceIssues; ?></h3>
@@ -862,31 +940,31 @@ $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
 
 <section class="hr-dashboard-grid">
     <div class="hr-column">
-        <div class="panel">
+        <div class="panel hr-searchable">
             <div class="panel-header">
                 <h2>Quick Actions</h2>
             </div>
 
             <div class="quick-actions">
-                <button type="button" class="quick-card" onclick="openQuickPopup('addEmployeePopup')">
+                <button type="button" class="quick-card hr-searchable" onclick="openQuickPopup('addEmployeePopup')">
                     <i class="fas fa-user-plus"></i>
                     <h4>Add Employee</h4>
                     <p>Create employee accounts directly from the HR dashboard.</p>
                 </button>
 
-                <button type="button" class="quick-card purple" onclick="openQuickPopup('leavePopup')">
+                <button type="button" class="quick-card hr-searchable purple" onclick="openQuickPopup('leavePopup')">
                     <i class="fas fa-calendar-check"></i>
                     <h4>Approve Leaves</h4>
                     <p>Approve or reject pending leave requests instantly.</p>
                 </button>
 
-                <button type="button" class="quick-card blue" onclick="openQuickPopup('recruitmentPopup')">
+                <button type="button" class="quick-card hr-searchable blue" onclick="openQuickPopup('recruitmentPopup')">
                     <i class="fas fa-user-tie"></i>
                     <h4>Recruitment</h4>
                     <p>Review pending accounts and recruitment follow-ups.</p>
                 </button>
 
-                <button type="button" class="quick-card orange" onclick="openQuickPopup('birthdayPopup')">
+                <button type="button" class="quick-card hr-searchable orange" onclick="openQuickPopup('birthdayPopup')">
                     <i class="fas fa-cake-candles"></i>
                     <h4>Birthdays</h4>
                     <p>Send birthday messages and decide gift amount.</p>
@@ -894,7 +972,7 @@ $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
             </div>
         </div>
 
-        <div class="panel">
+        <div class="panel hr-searchable">
             <div class="panel-header">
                 <h2>Birthday Notifications 🎂</h2>
                 <a href="employees.php">View Employees</a>
@@ -903,7 +981,7 @@ $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
             <div class="birthday-list">
                 <?php if ($birthdayUsers && mysqli_num_rows($birthdayUsers) > 0) { ?>
                     <?php while ($birthday = mysqli_fetch_assoc($birthdayUsers)) { ?>
-                        <div class="birthday-item">
+                        <div class="birthday-item hr-searchable">
                             <div class="birthday-icon today">
                                 <i class="fas fa-cake-candles"></i>
                             </div>
@@ -934,7 +1012,7 @@ $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
                         </div>
                     <?php } ?>
                 <?php } else { ?>
-                    <div class="birthday-item">
+                    <div class="birthday-item hr-searchable">
                         <div class="birthday-icon">
                             <i class="fas fa-cake-candles"></i>
                         </div>
@@ -950,7 +1028,7 @@ $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
     </div>
 
     <div class="hr-column">
-        <div class="panel">
+        <div class="panel hr-searchable">
             <div class="panel-header">
                 <h2>HR To-Do List</h2>
             </div>
@@ -963,7 +1041,7 @@ $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
             <div class="todo-db-list">
                 <?php if ($hrTodosResult && mysqli_num_rows($hrTodosResult) > 0) { ?>
                     <?php while ($todo = mysqli_fetch_assoc($hrTodosResult)) { ?>
-                        <div class="todo-db-item <?php echo $todo['status']; ?>">
+                        <div class="todo-db-item hr-searchable <?php echo $todo['status']; ?>">
                             <div class="todo-db-left">
                                 <a href="hrdashboard.php?toggle_hr_todo=<?php echo $todo['id']; ?>" class="todo-check-btn">
                                     <?php if ($todo['status'] === 'done') { ?>
@@ -989,18 +1067,18 @@ $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
                         </div>
                     <?php } ?>
                 <?php } else { ?>
-                    <p class="empty-todo-text">No HR tasks yet. Add your first task.</p>
+                    <p class="empty-todo-text hr-searchable">No HR tasks yet. Add your first task.</p>
                 <?php } ?>
             </div>
         </div>
 
-        <div class="panel">
+        <div class="panel hr-searchable">
             <div class="panel-header">
                 <h2>Recent Activity</h2>
             </div>
 
             <div class="activity-list">
-                <div class="activity-item">
+                <div class="activity-item hr-searchable">
                     <div class="activity-icon"><i class="fas fa-user-check"></i></div>
                     <div>
                         <h4><?php echo $activeEmployees; ?> active employees</h4>
@@ -1008,7 +1086,7 @@ $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
                     </div>
                 </div>
 
-                <div class="activity-item">
+                <div class="activity-item hr-searchable">
                     <div class="activity-icon"><i class="fas fa-calendar-check"></i></div>
                     <div>
                         <h4><?php echo $leaveRequests; ?> pending leave requests</h4>
@@ -1016,7 +1094,7 @@ $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
                     </div>
                 </div>
 
-                <div class="activity-item">
+                <div class="activity-item hr-searchable">
                     <div class="activity-icon"><i class="fas fa-cake-candles"></i></div>
                     <div>
                         <h4><?php echo $todayBirthdayCount; ?> birthday notification(s)</h4>
@@ -1092,7 +1170,7 @@ $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
         <div class="popup-list">
             <?php if ($pendingLeaves && mysqli_num_rows($pendingLeaves) > 0) { ?>
                 <?php while ($leave = mysqli_fetch_assoc($pendingLeaves)) { ?>
-                    <div class="popup-item">
+                    <div class="popup-item hr-searchable">
                         <div>
                             <h4><?php echo htmlspecialchars($leave['employee_name']); ?> - <?php echo htmlspecialchars($leave['leave_type']); ?></h4>
                             <p><?php echo htmlspecialchars($leave['start_date']); ?> to <?php echo htmlspecialchars($leave['end_date']); ?></p>
@@ -1112,7 +1190,7 @@ $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
                     </div>
                 <?php } ?>
             <?php } else { ?>
-                <div class="popup-item">
+                <div class="popup-item hr-searchable">
                     <div>
                         <h4>No pending leave requests</h4>
                         <p>There are no leave requests waiting for HR review right now.</p>
@@ -1121,7 +1199,7 @@ $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
                 </div>
             <?php } ?>
 
-            <div class="popup-item">
+            <div class="popup-item hr-searchable">
                 <div>
                     <h4>Open leave request center</h4>
                     <p>View all leave requests and history.</p>
@@ -1144,7 +1222,7 @@ $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
         <div class="popup-list">
             <?php if ($pendingAccounts && mysqli_num_rows($pendingAccounts) > 0) { ?>
                 <?php while ($account = mysqli_fetch_assoc($pendingAccounts)) { ?>
-                    <div class="popup-item">
+                    <div class="popup-item hr-searchable">
                         <div>
                             <h4><?php echo htmlspecialchars($account['full_name']); ?></h4>
                             <p><?php echo htmlspecialchars($account['email']); ?> · <?php echo htmlspecialchars($account['username']); ?></p>
@@ -1153,7 +1231,7 @@ $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
                     </div>
                 <?php } ?>
             <?php } else { ?>
-                <div class="popup-item">
+                <div class="popup-item hr-searchable">
                     <div>
                         <h4>No pending accounts</h4>
                         <p>All accounts are currently ready.</p>
@@ -1162,7 +1240,7 @@ $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
                 </div>
             <?php } ?>
 
-            <div class="popup-item">
+            <div class="popup-item hr-searchable">
                 <div>
                     <h4>Open recruitment page</h4>
                     <p>Review submitted applications, CVs, and applicant information.</p>
@@ -1180,21 +1258,36 @@ $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
             <button type="button" onclick="closeQuickPopup('birthdayPopup')">&times;</button>
         </div>
 
-        <p class="popup-subtitle">Today’s birthdays appear first. HR writes the message and chooses the gift amount manually.</p>
+        <p class="popup-subtitle">
+            Today’s birthdays appear first. HR writes the message and chooses the gift amount manually.
+        </p>
 
         <div class="popup-list">
             <?php if ($birthdayMonthUsers && mysqli_num_rows($birthdayMonthUsers) > 0) { ?>
                 <?php while ($birthday = mysqli_fetch_assoc($birthdayMonthUsers)) { ?>
                     <?php
-                        $isToday = date("m-d", strtotime($birthday['birth_date'])) === date("m-d");
+                        $birthdayMonthDay = date("m-d", strtotime($birthday['birth_date']));
+                        $todayMonthDay = date("m-d");
+
+                        if ($birthdayMonthDay === $todayMonthDay) {
+                            $birthdayStatus = "Today";
+                            $birthdayBadgeClass = "done";
+                        } elseif ($birthdayMonthDay > $todayMonthDay) {
+                            $birthdayStatus = "Upcoming";
+                            $birthdayBadgeClass = "pending";
+                        } else {
+                            $birthdayStatus = "Passed";
+                            $birthdayBadgeClass = "passed";
+                        }
                     ?>
 
-                    <div class="popup-item">
+                    <div class="popup-item hr-searchable">
                         <div>
                             <h4>
                                 <?php echo htmlspecialchars($birthday['full_name']); ?>
-                                <?php if ($isToday) { echo "🎉"; } ?>
+                                <?php if ($birthdayStatus === "Today") { echo "🎉"; } ?>
                             </h4>
+
                             <p>
                                 <?php echo date("M d", strtotime($birthday['birth_date'])); ?>
                                 · Username:
@@ -1202,19 +1295,23 @@ $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
                             </p>
                         </div>
 
-                        <?php if ($isToday && empty($birthday['birthday_message'])) { ?>
+                        <?php if ($birthdayStatus === "Today" && empty($birthday['birthday_message'])) { ?>
                             <span class="todo-badge pending">Needs HR Gift</span>
-                        <?php } elseif ($isToday && !empty($birthday['birthday_message'])) { ?>
+
+                        <?php } elseif ($birthdayStatus === "Today" && !empty($birthday['birthday_message'])) { ?>
                             <span class="todo-badge done">
                                 Gift $<?php echo number_format((float)$birthday['reward_amount'], 2); ?>
                             </span>
+
                         <?php } else { ?>
-                            <span class="todo-badge pending">Upcoming</span>
+                            <span class="todo-badge <?php echo $birthdayBadgeClass; ?>">
+                                <?php echo $birthdayStatus; ?>
+                            </span>
                         <?php } ?>
                     </div>
                 <?php } ?>
             <?php } else { ?>
-                <div class="popup-item">
+                <div class="popup-item hr-searchable">
                     <div>
                         <h4>No birthdays this month</h4>
                         <p>Add employee birth dates to activate birthday notifications.</p>
@@ -1244,6 +1341,30 @@ document.addEventListener("click", function(e) {
         }
     });
 });
+
+function searchHRDashboard() {
+    const input = document.getElementById("hrSearch");
+    const searchValue = input.value.toLowerCase().trim();
+    const items = document.querySelectorAll(".hr-searchable");
+    const noResults = document.getElementById("noSearchResults");
+
+    let found = false;
+
+    items.forEach(function(item) {
+        const text = item.innerText.toLowerCase();
+
+        if (searchValue === "" || text.includes(searchValue)) {
+            item.style.display = "";
+            found = true;
+        } else {
+            item.style.display = "none";
+        }
+    });
+
+    if (noResults) {
+        noResults.style.display = found ? "none" : "block";
+    }
+}
 </script>
 
 </body>
