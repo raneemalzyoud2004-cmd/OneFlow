@@ -575,31 +575,6 @@ $employees = mysqli_query($conn, "
                                     Edit
                                 </button>
 
-                                <?php if ($row['account_status'] == 'active'): ?>
-                                    <form method="POST" action="employees.php" style="display:inline;">
-                                        <input type="hidden" name="employee_id" value="<?php echo $row['id']; ?>">
-                                        <button 
-                                            type="submit"
-                                            name="deactivate_employee"
-                                            class="action-btn deactivate-btn"
-                                            onclick="return confirm('Are you sure you want to deactivate this user?');"
-                                        >
-                                            Deactivate
-                                        </button>
-                                    </form>
-                                <?php else: ?>
-                                    <form method="POST" action="employees.php" style="display:inline;">
-                                        <input type="hidden" name="employee_id" value="<?php echo $row['id']; ?>">
-                                        <button 
-                                            type="submit"
-                                            name="activate_employee"
-                                            class="action-btn activate-btn"
-                                            onclick="return confirm('Are you sure you want to activate this user?');"
-                                        >
-                                            Activate
-                                        </button>
-                                    </form>
-                                <?php endif; ?>
                             </td>
                         </tr>
                     <?php endwhile; ?>
