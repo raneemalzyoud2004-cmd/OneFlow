@@ -470,9 +470,7 @@ if (isset($_GET['search'])) {
 
                   <td class="cv-actions">
                     <?php if (!empty($row['cv_file'])): ?>
-                      <a href="<?php echo htmlspecialchars($row['cv_file']); ?>" target="_blank" class="action-btn cv-view">
-                        View CV
-                      </a>
+                    
                       <a href="<?php echo htmlspecialchars($row['cv_file']); ?>" download class="action-btn cv-download">
                         Download
                       </a>
