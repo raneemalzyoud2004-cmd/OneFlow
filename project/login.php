@@ -61,18 +61,22 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 } elseif ($isBlocked === 1) {
                     $error = "Your account is blocked. Please contact admin.";
                 } else {
-                    $storedPassword = $row['password'];
-                    $loginOk = false;
+                    $stored_password = $row['password'];
+                    $sha_input = hash('sha256', $password_input);
 
-                    if (!empty($storedPassword) && password_verify($password_input, $storedPassword)) {
-                        $loginOk = true;
-                    } elseif (hash('sha256', $password_input) === $storedPassword) {
-                        $loginOk = true;
-                    } elseif ($storedPassword === $password_input) {
-                        $loginOk = true;
-                    }
+                   $storedPassword = $row['password'];
+$loginOk = false;
 
-                    if ($loginOk) {
+if (password_verify($password_input, $storedPassword)) {
+    $loginOk = true;
+} elseif (hash('sha256', $password_input) === $storedPassword) {
+    $loginOk = true;
+} elseif ($storedPassword === $password_input) {
+    $loginOk = true;
+}
+
+if ($loginOk) {
+
                         $reset_sql = "UPDATE users SET failed_attempts = 0 WHERE id = ?";
                         $reset_stmt = mysqli_prepare($conn, $reset_sql);
                         if ($reset_stmt) {

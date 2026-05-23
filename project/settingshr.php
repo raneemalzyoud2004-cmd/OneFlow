@@ -15,7 +15,10 @@ $userId = intval($_SESSION['user_id']);
 $successMessage = "";
 $errorMessage = "";
 
-$userQuery = mysqli_query($conn, "SELECT * FROM users WHERE id=$userId AND role='hr'");
+$stmt = mysqli_prepare($conn, "SELECT * FROM users WHERE id = ? AND role = 'hr'");
+mysqli_stmt_bind_param($stmt, "i", $userId);
+mysqli_stmt_execute($stmt);
+$userQuery = mysqli_stmt_get_result($stmt);
 $userData = mysqli_fetch_assoc($userQuery);
 
 if (!$userData) {
@@ -24,19 +27,20 @@ if (!$userData) {
 }
 
 if (isset($_POST['update_profile'])) {
-    $fullName = mysqli_real_escape_string($conn, $_POST['full_name']);
-    $email = mysqli_real_escape_string($conn, $_POST['email']);
+    $fullName = trim($_POST['full_name']);
+    $email = trim($_POST['email']);
 
-    $update = mysqli_query($conn, "
-        UPDATE users 
-        SET full_name='$fullName', email='$email'
-        WHERE id=$userId AND role='hr'
-    ");
+    $stmt = mysqli_prepare($conn, "UPDATE users SET full_name = ?, email = ? WHERE id = ? AND role = 'hr'");
+    mysqli_stmt_bind_param($stmt, "ssi", $fullName, $email, $userId);
 
-    if ($update) {
+    if (mysqli_stmt_execute($stmt)) {
         $_SESSION['full_name'] = $fullName;
         $successMessage = "Profile updated successfully.";
-        $userQuery = mysqli_query($conn, "SELECT * FROM users WHERE id=$userId AND role='hr'");
+
+        $stmt = mysqli_prepare($conn, "SELECT * FROM users WHERE id = ? AND role = 'hr'");
+        mysqli_stmt_bind_param($stmt, "i", $userId);
+        mysqli_stmt_execute($stmt);
+        $userQuery = mysqli_stmt_get_result($stmt);
         $userData = mysqli_fetch_assoc($userQuery);
     } else {
         $errorMessage = "Failed to update profile.";
@@ -48,25 +52,39 @@ if (isset($_POST['change_password'])) {
     $newPassword = $_POST['new_password'];
     $confirmPassword = $_POST['confirm_password'];
 
-    if ($newPassword !== $confirmPassword) {
+    $storedPassword = $userData['password'];
+
+    if (empty($currentPassword) || empty($newPassword) || empty($confirmPassword)) {
+        $errorMessage = "Please fill in all password fields.";
+    } elseif ($newPassword !== $confirmPassword) {
         $errorMessage = "New password and confirmation do not match.";
+    } elseif (strlen($newPassword) < 4) {
+        $errorMessage = "New password must be at least 4 characters.";
     } else {
-        $storedPassword = $userData['password'];
-        $passwordValid = password_verify($currentPassword, $storedPassword) || $currentPassword === $storedPassword;
+        $passwordValid = false;
+
+        if (password_verify($currentPassword, $storedPassword)) {
+            $passwordValid = true;
+        } elseif ($currentPassword === $storedPassword) {
+            $passwordValid = true;
+        }
 
         if (!$passwordValid) {
             $errorMessage = "Current password is incorrect.";
         } else {
             $hashedPassword = password_hash($newPassword, PASSWORD_DEFAULT);
 
-            $updatePassword = mysqli_query($conn, "
-                UPDATE users 
-                SET password='$hashedPassword'
-                WHERE id=$userId AND role='hr'
-            ");
+            $stmt = mysqli_prepare($conn, "UPDATE users SET password = ? WHERE id = ? AND role = 'hr'");
+            mysqli_stmt_bind_param($stmt, "si", $hashedPassword, $userId);
 
-            if ($updatePassword) {
-                $successMessage = "Password updated successfully.";
+            if (mysqli_stmt_execute($stmt)) {
+                $successMessage = "Password updated successfully. Please use your new password next time.";
+
+                $stmt = mysqli_prepare($conn, "SELECT * FROM users WHERE id = ? AND role = 'hr'");
+                mysqli_stmt_bind_param($stmt, "i", $userId);
+                mysqli_stmt_execute($stmt);
+                $userQuery = mysqli_stmt_get_result($stmt);
+                $userData = mysqli_fetch_assoc($userQuery);
             } else {
                 $errorMessage = "Failed to update password.";
             }
@@ -210,11 +228,11 @@ $lastLogin = $userData['last_login'] ?? "No login recorded";
     </header>
 
     <?php if (!empty($successMessage)): ?>
-      <div class="success-message"><?php echo $successMessage; ?></div>
+      <div class="success-message"><?php echo htmlspecialchars($successMessage); ?></div>
     <?php endif; ?>
 
     <?php if (!empty($errorMessage)): ?>
-      <div class="error-message"><?php echo $errorMessage; ?></div>
+      <div class="error-message"><?php echo htmlspecialchars($errorMessage); ?></div>
     <?php endif; ?>
 
     <section class="hero-banner">

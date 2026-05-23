@@ -123,11 +123,10 @@ $result = mysqli_query($conn, "
     SELECT COUNT(*) AS total
     FROM schedule
     WHERE user_id='$user_id'
-    AND type='Work'
+    AND TRIM(LOWER(type)) IN ('sessions', 'session')
     AND start_time BETWEEN '$weekStart' AND '$weekEnd'
 ");
 if ($result) $workSessions = mysqli_fetch_assoc($result)['total'];
-
 $result = mysqli_query($conn, "
     SELECT COUNT(*) AS total
     FROM schedule
@@ -296,6 +295,7 @@ $todayScheduleQuery = mysqli_query($conn, "
 
 .type-meeting { background: #dbeafe; color: #1d4ed8; }
 .type-work { background: #dcfce7; color: #166534; }
+.type-sessions { background: #cffafe; color: #0f766e; }
 .type-training { background: #f3e8ff; color: #7e22ce; }
 .type-break { background: #ffedd5; color: #c2410c; }
 
@@ -473,7 +473,7 @@ $todayScheduleQuery = mysqli_query($conn, "
 <header class="topbar">
     <div class="topbar-left">
         <h1>My Schedule</h1>
-        <p>Stay updated with your meetings, work plan, and important times.</p>
+        <p>Stay updated with your meetings, sessions, work plan, and important times.</p>
     </div>
 
     <div class="topbar-right">
@@ -510,7 +510,7 @@ $todayScheduleQuery = mysqli_query($conn, "
         <h2>Today’s Schedule Planner ⏰</h2>
         <p>
             You have <strong><?php echo $meetingsToday; ?></strong> meeting(s) today,
-            <strong><?php echo $workSessions; ?></strong> work session(s) this week,
+            <strong><?php echo $workSessions; ?></strong> session(s) this week,
             and your next meeting is at <strong><?php echo $nextMeeting; ?></strong>.
         </p>
     </div>
@@ -530,14 +530,7 @@ $todayScheduleQuery = mysqli_query($conn, "
         </div>
     </div>
 
-    <div class="card searchable-item">
-        <div class="card-icon"><i class="fas fa-business-time"></i></div>
-        <div class="card-info">
-            <h3><?php echo $workSessions; ?></h3>
-            <p>Work Sessions</p>
-            <span>This week</span>
-        </div>
-    </div>
+   
 
     <div class="card searchable-item">
         <div class="card-icon"><i class="fas fa-clock"></i></div>
@@ -575,6 +568,8 @@ $todayScheduleQuery = mysqli_query($conn, "
                 <button class="filter-chip active" onclick="filterSchedule('all', this)">All</button>
                 <button class="filter-chip" onclick="filterSchedule('Meeting', this)">Meetings</button>
                 <button class="filter-chip" onclick="filterSchedule('Work', this)">Work</button>
+             <button class="filter-chip" onclick="filterSchedule('Sessions', this)">Sessions</button>
+<button class="filter-chip" onclick="filterSchedule('Session', this)" style="display:none;">Session</button>
                 <button class="filter-chip" onclick="filterSchedule('Training', this)">Training</button>
                 <button class="filter-chip" onclick="filterSchedule('Break', this)">Break</button>
             </div>
@@ -613,7 +608,10 @@ $todayScheduleQuery = mysqli_query($conn, "
                                 $statusClass = "pending";
                             }
 
-                            $typeClass = "type-" . strtolower($row['type']);
+                          $typeClass = "type-" . strtolower(trim($row['type']));
+if ($typeClass === "type-session") {
+    $typeClass = "type-sessions";
+}
                             $editTitle = htmlspecialchars($row['title'], ENT_QUOTES);
                             $editType = htmlspecialchars($row['type'], ENT_QUOTES);
                             $editStart = date('Y-m-d\TH:i', strtotime($row['start_time']));
@@ -753,6 +751,7 @@ $todayScheduleQuery = mysqli_query($conn, "
                 <select name="type" required>
                     <option value="Meeting">Meeting</option>
                     <option value="Work">Work</option>
+                    <option value="Sessions">Sessions</option>
                     <option value="Training">Training</option>
                     <option value="Break">Break</option>
                 </select>
@@ -793,6 +792,7 @@ $todayScheduleQuery = mysqli_query($conn, "
                 <select name="type" id="edit_type" required>
                     <option value="Meeting">Meeting</option>
                     <option value="Work">Work</option>
+                    <option value="Sessions">Sessions</option>
                     <option value="Training">Training</option>
                     <option value="Break">Break</option>
                 </select>

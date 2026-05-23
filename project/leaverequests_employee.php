@@ -126,15 +126,9 @@ $result = $myRequests->get_result();
           <span class="notif-count">2</span>
         </div>
 
-        <div class="admin-profile">
-          <div class="admin-avatar">
-            <?php echo strtoupper(substr($full_name, 0, 1)); ?>
-          </div>
-          <div>
-            <h4><?php echo htmlspecialchars($full_name); ?></h4>
-            <span>Employee</span>
-          </div>
-        </div>
+   <a href="logout.php" class="logout-btn">
+    <i class="fas fa-right-from-bracket"></i> Logout
+</a>
       </div>
     </header>
 

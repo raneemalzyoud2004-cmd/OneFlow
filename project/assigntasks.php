@@ -19,6 +19,8 @@ $first_letter = strtoupper(substr(trim($full_name), 0, 1));
 $success_message = '';
 $error_message = '';
 
+$teamUsernames = "'ammar_emp','dana_emp','khaled_emp','noor_emp','sara_emp'";
+
 $notificationCountResult = mysqli_query($conn, "
     SELECT COUNT(*) AS total 
     FROM notifications 
@@ -67,10 +69,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['assign_ticket'])) {
     } elseif (!in_array($priority, $allowed_priorities, true)) {
         $error_message = "Invalid priority selected.";
     } else {
-        $checkEmployee = mysqli_query($conn, "SELECT id FROM users WHERE id = $assigned_to AND role = 'employee' LIMIT 1");
+        $checkEmployee = mysqli_query($conn, "
+            SELECT id, full_name
+            FROM users
+            WHERE id = $assigned_to
+            AND role = 'employee'
+            AND account_status = 'active'
+            AND username IN ($teamUsernames)
+            LIMIT 1
+        ");
 
         if (!$checkEmployee || mysqli_num_rows($checkEmployee) === 0) {
-            $error_message = "Selected employee was not found.";
+            $error_message = "Selected employee is not in your team.";
         } else {
             $employeeData = mysqli_fetch_assoc($checkEmployee);
             $employeeName = $employeeData['full_name'];
@@ -146,13 +156,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_ticket'])) {
             FROM users 
             WHERE id = $assigned_to 
             AND role = 'employee'
+            AND account_status = 'active'
+            AND username IN ($teamUsernames)
             LIMIT 1
         ");
 
         if (!$checkTicket || mysqli_num_rows($checkTicket) === 0) {
             $error_message = "Ticket not found or you do not have permission to update it.";
         } elseif (!$checkEmployee || mysqli_num_rows($checkEmployee) === 0) {
-            $error_message = "Selected employee was not found.";
+            $error_message = "Selected employee is not in your team.";
         } else {
             $safe_priority = mysqli_real_escape_string($conn, $priority);
             $safe_progress_note = mysqli_real_escape_string($conn, $progress_note);
@@ -185,7 +197,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_ticket'])) {
 }
 
 $employees = [];
-$employeesQuery = mysqli_query($conn, "SELECT id, full_name FROM users WHERE role = 'employee' ORDER BY full_name ASC");
+$employeesQuery = mysqli_query($conn, "
+    SELECT id, full_name 
+    FROM users 
+    WHERE role = 'employee'
+    AND account_status = 'active'
+    AND username IN ($teamUsernames)
+    ORDER BY full_name ASC
+");
 
 if ($employeesQuery) {
     while ($row = mysqli_fetch_assoc($employeesQuery)) {
@@ -681,7 +700,6 @@ function priorityBadgeClass($priority)
             <div class="preview-list">
                 <?php foreach ($recentTickets as $ticket): ?>
                     <?php
-                    $safeTitle = htmlspecialchars($ticket['title'], ENT_QUOTES);
                     $safePriority = htmlspecialchars($ticket['priority'], ENT_QUOTES);
                     $safeDueDate = htmlspecialchars($ticket['due_date'] ?? '', ENT_QUOTES);
                     $safeProgressNote = htmlspecialchars($ticket['progress_note'] ?? '', ENT_QUOTES);

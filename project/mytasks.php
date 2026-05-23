@@ -508,7 +508,7 @@ function statusClass($status)
       <div class="topbar-right">
         <div class="search-box">
           <i class="fas fa-search"></i>
-          <input type="text" placeholder="Search tasks..." disabled>
+       <input type="text" id="taskSearch" placeholder="Search tasks...">
         </div>
 
         <a href="notificationsemployee.php" class="icon-btn notification-bell">
@@ -718,6 +718,22 @@ function handleFile(file, fileNameBox, previewBox) {
     }
 }
 </script>
+<script>
+const searchInput = document.getElementById("taskSearch");
 
+searchInput.addEventListener("keyup", function () {
+    let value = this.value.toLowerCase();
+
+    document.querySelectorAll(".ticket-card").forEach(function(card) {
+        let text = card.innerText.toLowerCase();
+
+        if (text.includes(value)) {
+            card.style.display = "block";
+        } else {
+            card.style.display = "none";
+        }
+    });
+});
+</script>
 </body>
 </html>

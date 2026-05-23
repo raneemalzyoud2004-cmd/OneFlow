@@ -2,20 +2,17 @@
 session_start();
 include("config.php");
 
-$reportsQuery = "
-SELECT tasks.*, users.full_name
-FROM tasks
-JOIN users ON tasks.employee_id = users.id
-ORDER BY tasks.id DESC
-LIMIT 5
-";
-
-$reportsResult = mysqli_query($conn, $reportsQuery);
 header("Cache-Control: no-cache, no-store, must-revalidate");
 header("Pragma: no-cache");
 header("Expires: 0");
 
-$full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Leader';
+if (!isset($_SESSION['user_id']) || $_SESSION['role'] !== 'teamleader') {
+    header("Location: login.php");
+    exit();
+}
+
+$full_name = $_SESSION['full_name'] ?? 'Team Leader';
+$initial = strtoupper(substr($full_name, 0, 1));
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -34,10 +31,12 @@ $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Lead
       margin-top: 25px;
     }
 
-    .report-stat-card {
+    .report-stat-card,
+    .report-box,
+    .performance-box {
       background: #ffffff;
-      border-radius: 22px;
-      padding: 24px;
+      border-radius: 24px;
+      padding: 26px;
       box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
       border: 1px solid #eef2f7;
     }
@@ -54,7 +53,8 @@ $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Lead
       margin-bottom: 14px;
     }
 
-    .mini-progress {
+    .mini-progress,
+    .member-progress {
       width: 100%;
       height: 10px;
       background: #e2e8f0;
@@ -62,16 +62,18 @@ $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Lead
       overflow: hidden;
     }
 
-    .mini-progress span {
+    .mini-progress span,
+    .member-progress span {
       display: block;
       height: 100%;
       border-radius: 999px;
+      background: linear-gradient(135deg, #12c2cc, #2dd4bf);
     }
 
-    .progress-green { background: linear-gradient(135deg, #22c55e, #4ade80); width: 88%; }
-    .progress-blue { background: linear-gradient(135deg, #0ea5e9, #38bdf8); width: 74%; }
-    .progress-yellow { background: linear-gradient(135deg, #f59e0b, #fbbf24); width: 61%; }
-    .progress-red { background: linear-gradient(135deg, #ef4444, #f87171); width: 32%; }
+    .progress-green { width: 88%; }
+    .progress-blue { width: 74%; }
+    .progress-yellow { width: 61%; }
+    .progress-red { width: 32%; }
 
     .reports-layout {
       display: grid;
@@ -79,15 +81,6 @@ $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Lead
       gap: 24px;
       margin-top: 28px;
       align-items: start;
-    }
-
-    .report-box,
-    .performance-box {
-      background: #ffffff;
-      border-radius: 24px;
-      padding: 26px;
-      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-      border: 1px solid #eef2f7;
     }
 
     .report-box h3,
@@ -109,26 +102,22 @@ $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Lead
     .report-table th,
     .report-table td {
       text-align: left;
-      padding: 14px 12px;
+      padding: 15px 12px;
       border-bottom: 1px solid #edf2f7;
       font-size: 14px;
     }
 
     .report-table th {
       color: #475569;
-      font-weight: 700;
+      font-weight: 800;
       background: #f8fbfd;
     }
 
-    .report-table td {
-      color: #0f172a;
-    }
-
     .status-label {
-      padding: 6px 12px;
+      padding: 7px 13px;
       border-radius: 999px;
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 800;
       display: inline-block;
     }
 
@@ -150,13 +139,13 @@ $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Lead
     .member-performance-list {
       display: flex;
       flex-direction: column;
-      gap: 18px;
+      gap: 16px;
     }
 
     .member-performance-item {
-      padding: 16px;
+      padding: 18px;
       border: 1px solid #edf2f7;
-      border-radius: 18px;
+      border-radius: 20px;
       background: #fbfdff;
     }
 
@@ -165,7 +154,6 @@ $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Lead
       justify-content: space-between;
       align-items: center;
       margin-bottom: 10px;
-      gap: 12px;
     }
 
     .member-top h4 {
@@ -181,28 +169,13 @@ $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Lead
 
     .member-score {
       font-size: 14px;
-      font-weight: 700;
+      font-weight: 800;
       color: #0f172a;
       margin-bottom: 10px;
     }
 
-    .member-progress {
-      width: 100%;
-      height: 10px;
-      background: #e2e8f0;
-      border-radius: 999px;
-      overflow: hidden;
-      margin-bottom: 10px;
-    }
-
-    .member-progress span {
-      display: block;
-      height: 100%;
-      border-radius: 999px;
-      background: linear-gradient(135deg, #12c2cc, #2dd4bf);
-    }
-
     .member-note {
+      margin-top: 10px;
       font-size: 13px;
       color: #64748b;
       line-height: 1.5;
@@ -229,7 +202,6 @@ $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Lead
 
 <div class="dashboard-container">
 
-  <!-- Sidebar -->
   <aside class="sidebar">
     <div class="sidebar-top">
       <div class="logo-box">
@@ -259,13 +231,12 @@ $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Lead
     </div>
   </aside>
 
-  <!-- Main Content -->
   <main class="main-content">
 
     <header class="topbar">
       <div class="topbar-left">
         <h1>Reports</h1>
-        <p>Review team performance, task completion, and productivity insights in one place.</p>
+        <p>Review team performance, task completion, and productivity insights.</p>
       </div>
 
       <div class="topbar-right">
@@ -274,15 +245,13 @@ $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Lead
           <input type="text" placeholder="Search report, task, member...">
         </div>
 
-        <div class="icon-btn notification-bell">
+        <a href="notificationsteamleader.php" class="icon-btn notification-bell">
           <i class="fas fa-bell"></i>
           <span class="notif-count">4</span>
-        </div>
+        </a>
 
         <div class="admin-profile">
-          <div class="admin-avatar">
-            <?php echo strtoupper(substr($full_name, 0, 1)); ?>
-          </div>
+          <div class="admin-avatar"><?php echo htmlspecialchars($initial); ?></div>
           <div>
             <h4><?php echo htmlspecialchars($full_name); ?></h4>
             <span>Team Leader</span>
@@ -296,7 +265,7 @@ $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Lead
     <section class="hero-banner">
       <div class="hero-text">
         <h2>Team Reports & Insights 📑</h2>
-        <p>Analyze team output, review task completion rates, and monitor overall weekly productivity.</p>
+        <p>Analyze team output, review task completion rates, and monitor weekly productivity.</p>
       </div>
 
       <div class="hero-actions">
@@ -346,44 +315,43 @@ $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Lead
                 <th>Deadline</th>
               </tr>
             </thead>
-          <tbody>
 
-<tr>
-  <td>Leave Request Review</td>
-  <td>Noor</td>
-  <td><span class="status-label progress-label">In Progress</span></td>
-  <td>15 May 2026</td>
-</tr>
+            <tbody>
+              <tr>
+                <td>Leave Request Review</td>
+                <td>Noor</td>
+                <td><span class="status-label progress-label">In Progress</span></td>
+                <td>15 May 2026</td>
+              </tr>
 
-<tr>
-  <td>Attendance Records Update</td>
-  <td>Ammar</td>
-  <td><span class="status-label pending-label">Pending</span></td>
-  <td>17 May 2026</td>
-</tr>
+              <tr>
+                <td>Attendance Records Update</td>
+                <td>Ammar</td>
+                <td><span class="status-label pending-label">Pending</span></td>
+                <td>17 May 2026</td>
+              </tr>
 
-<tr>
-  <td>Employee Profile Testing</td>
-  <td>Sara</td>
-  <td><span class="status-label done-label">Completed</span></td>
-  <td>10 May 2026</td>
-</tr>
+              <tr>
+                <td>Employee Profile Testing</td>
+                <td>Sara</td>
+                <td><span class="status-label done-label">Completed</span></td>
+                <td>10 May 2026</td>
+              </tr>
 
-<tr>
-  <td>Tasks Progress Monitoring</td>
-  <td>Khaled</td>
-  <td><span class="status-label progress-label">In Progress</span></td>
-  <td>20 May 2026</td>
-</tr>
+              <tr>
+                <td>Tasks Progress Monitoring</td>
+                <td>Khaled</td>
+                <td><span class="status-label progress-label">In Progress</span></td>
+                <td>20 May 2026</td>
+              </tr>
 
-<tr>
-  <td>Notifications Page Review</td>
-  <td>Dana</td>
-  <td><span class="status-label pending-label">Pending</span></td>
-  <td>22 May 2026</td>
-</tr>
-
-</tbody>
+              <tr>
+                <td>Notifications Page Review</td>
+                <td>Dana</td>
+                <td><span class="status-label pending-label">Pending</span></td>
+                <td>22 May 2026</td>
+              </tr>
+            </tbody>
           </table>
         </div>
       </div>
@@ -391,144 +359,71 @@ $full_name = isset($_SESSION['full_name']) ? $_SESSION['full_name'] : 'Team Lead
       <div class="performance-box">
         <h3>Team Member Performance</h3>
 
-      <div class="member-performance-list">
+        <div class="member-performance-list">
 
-  <div class="member-performance-item">
-    <div class="member-top">
-      <div>
-        <h4>Noor</h4>
-        <span>Employee</span>
-      </div>
-    </div>
-
-    <div class="member-score">Performance Score: 91%</div>
-
-    <div class="member-progress">
-      <span style="width: 91%;"></span>
-    </div>
-
-    <div class="member-note">
-      Excellent follow-up on leave requests and task updates.
-    </div>
-  </div>
-
-  <div class="member-performance-item">
-    <div class="member-top">
-      <div>
-        <h4>Ammar</h4>
-        <span>Employee</span>
-      </div>
-    </div>
-
-    <div class="member-score">Performance Score: 84%</div>
-
-    <div class="member-progress">
-      <span style="width: 84%;"></span>
-    </div>
-
-    <div class="member-note">
-      Good attendance tracking and profile management performance.
-    </div>
-  </div>
-
-  <div class="member-performance-item">
-    <div class="member-top">
-      <div>
-        <h4>Sara</h4>
-        <span>Employee</span>
-      </div>
-    </div>
-
-    <div class="member-score">Performance Score: 96%</div>
-
-    <div class="member-progress">
-      <span style="width: 96%;"></span>
-    </div>
-
-    <div class="member-note">
-      Fast completion of assigned HR system tasks.
-    </div>
-  </div>
-
-  <div class="member-performance-item">
-    <div class="member-top">
-      <div>
-        <h4>Khaled</h4>
-        <span>Employee</span>
-      </div>
-    </div>
-
-    <div class="member-score">Performance Score: 78%</div>
-
-    <div class="member-progress">
-      <span style="width: 78%;"></span>
-    </div>
-
-    <div class="member-note">
-      Needs improvement in task completion deadlines.
-    </div>
-  </div>
-
-  <div class="member-performance-item">
-    <div class="member-top">
-      <div>
-        <h4>Dana</h4>
-        <span>Employee</span>
-      </div>
-    </div>
-
-    <div class="member-score">Performance Score: 69%</div>
-
-    <div class="member-progress">
-      <span style="width: 69%;"></span>
-    </div>
-
-    <div class="member-note">
-      Inactive recently with pending assigned reviews.
-    </div>
-  </div>
-
-</div>
+          <div class="member-performance-item">
+            <div class="member-top">
+              <div>
+                <h4>Noor</h4>
+                <span>Employee</span>
+              </div>
             </div>
+
             <div class="member-score">Performance Score: 91%</div>
             <div class="member-progress"><span style="width: 91%;"></span></div>
-            <div class="member-note">Strong progress in dashboard implementation and UI consistency updates.</div>
+            <div class="member-note">Excellent follow-up on leave requests and task updates.</div>
           </div>
 
           <div class="member-performance-item">
             <div class="member-top">
               <div>
-                <h4>Sara Khaled</h4>
-                <span>Backend Developer</span>
+                <h4>Ammar</h4>
+                <span>Employee</span>
               </div>
             </div>
+
             <div class="member-score">Performance Score: 84%</div>
             <div class="member-progress"><span style="width: 84%;"></span></div>
-            <div class="member-note">Good delivery speed with a few pending technical reviews this week.</div>
+            <div class="member-note">Good attendance tracking and profile management performance.</div>
           </div>
 
           <div class="member-performance-item">
             <div class="member-top">
               <div>
-                <h4>Lina Noor</h4>
-                <span>UI/UX Designer</span>
+                <h4>Sara</h4>
+                <span>Employee</span>
               </div>
             </div>
-            <div class="member-score">Performance Score: 95%</div>
-            <div class="member-progress"><span style="width: 95%;"></span></div>
-            <div class="member-note">Excellent design execution and timely completion of assigned tasks.</div>
+
+            <div class="member-score">Performance Score: 96%</div>
+            <div class="member-progress"><span style="width: 96%;"></span></div>
+            <div class="member-note">Fast completion of assigned system tasks.</div>
           </div>
 
           <div class="member-performance-item">
             <div class="member-top">
               <div>
-                <h4>Omar Sami</h4>
-                <span>QA Tester</span>
+                <h4>Khaled</h4>
+                <span>Employee</span>
               </div>
             </div>
+
             <div class="member-score">Performance Score: 78%</div>
             <div class="member-progress"><span style="width: 78%;"></span></div>
-            <div class="member-note">Testing coverage is improving, with a few delayed checks still open.</div>
+            <div class="member-note">Needs improvement in task completion deadlines.</div>
+          </div>
+
+          <div class="member-performance-item">
+            <div class="member-top">
+              <div>
+                <h4>Dana</h4>
+                <span>Employee</span>
+              </div>
+            </div>
+
+            <div class="member-score">Performance Score: 69%</div>
+            <div class="member-progress"><span style="width: 69%;"></span></div>
+            <div class="member-note">Inactive recently with pending assigned reviews.</div>
           </div>
 
         </div>
