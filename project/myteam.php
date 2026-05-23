@@ -360,13 +360,35 @@ $totalMembers = $teamResult ? mysqli_num_rows($teamResult) : 0;
             </div>
 
             <div class="member-actions">
+
                 <a href="employeeprofile_tl.php?id=<?php echo $member['id']; ?>" class="member-btn view-btn">
                     <i class="fas fa-eye"></i> View Profile
                 </a>
 
-                <a href="assigntasks.php?employee_id=<?php echo $member['id']; ?>" class="member-btn task-btn">
-                    <i class="fas fa-list-check"></i> Assign Task
-                </a>
+                <?php if ($member['account_status'] === 'active') { ?>
+
+                    <a href="assigntasks.php?employee_id=<?php echo $member['id']; ?>" class="member-btn task-btn">
+                        <i class="fas fa-list-check"></i> Assign Task
+                    </a>
+
+                <?php } else { ?>
+
+                    <button 
+                        class="member-btn task-btn" 
+                        disabled
+                        style="
+                            background:#fee2e2;
+                            color:#991b1b;
+                            cursor:not-allowed;
+                            opacity:0.85;
+                            border:none;
+                        "
+                    >
+                        <i class="fas fa-ban"></i> Cannot Assign
+                    </button>
+
+                <?php } ?>
+
             </div>
         </div>
 
