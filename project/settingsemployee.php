@@ -205,10 +205,7 @@ $initial = strtoupper(substr($full_name, 0, 1));
           <input type="text" placeholder="Search settings...">
         </div>
 
-        <a href="notificationsemployee.php" class="icon-btn notification-bell">
-          <i class="fas fa-bell"></i>
-          <span class="notif-count">1</span>
-        </a>
+      
 
         <div class="admin-avatar"><?php echo htmlspecialchars($initial); ?></div>
         <div>

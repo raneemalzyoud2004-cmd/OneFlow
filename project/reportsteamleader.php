@@ -246,10 +246,7 @@ $initial = strtoupper(substr($full_name, 0, 1));
           <input type="text" placeholder="Search report, task, member...">
         </div>
 
-        <a href="notificationsteamleader.php" class="icon-btn notification-bell">
-          <i class="fas fa-bell"></i>
-          <span class="notif-count">4</span>
-        </a>
+     
 
         <div class="admin-profile">
           <div class="admin-avatar"><?php echo htmlspecialchars($initial); ?></div>
