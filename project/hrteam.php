@@ -385,6 +385,8 @@ if ($stmt) {
                             <option value="hr" <?php echo $user['role'] === 'hr' ? 'selected' : ''; ?>>HR</option>
                             <option value="employee" <?php echo $user['role'] === 'employee' ? 'selected' : ''; ?>>Employee</option>
                             <option value="teamleader" <?php echo $user['role'] === 'teamleader' ? 'selected' : ''; ?>>Team Leader</option>
+                            <option value="teamleader" <?php echo $user['role'] === 'itsupport' ? 'selected' : ''; ?>>IT Support</option>
+
                           </select>
 
                           <button

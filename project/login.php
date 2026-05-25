@@ -4,6 +4,10 @@ include("config.php");
 
 date_default_timezone_set("Asia/Amman");
 
+header("Cache-Control: no-cache, no-store, must-revalidate");
+header("Pragma: no-cache");
+header("Expires: 0");
+
 $error = "";
 
 mysqli_query($conn, "
@@ -16,26 +20,30 @@ mysqli_query($conn, "
     )
 ");
 
-if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
-    if ($_SESSION['role'] === 'admin') {
+function redirectByRole($role) {
+    if ($role === 'admin') {
         header("Location: dashboardadmin.php");
         exit();
-    } elseif ($_SESSION['role'] === 'hr') {
+    } elseif ($role === 'hr') {
         header("Location: hrdashboard.php");
         exit();
-    } elseif ($_SESSION['role'] === 'employee') {
+    } elseif ($role === 'employee') {
         header("Location: dashboardemployee.php");
         exit();
-    } elseif ($_SESSION['role'] === 'teamleader') {
+    } elseif ($role === 'teamleader') {
         header("Location: dashboardteamleader.php");
         exit();
-    } elseif ($_SESSION['role'] === 'itsupport') {
+    } elseif ($role === 'itsupport') {
         header("Location: itsupport_dashboard.php");
         exit();
     }
 }
 
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
+    redirectByRole($_SESSION['role']);
+}
+
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $username = trim($_POST['username']);
     $password_input = trim($_POST['password']);
 
@@ -53,53 +61,32 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $isBlocked = isset($row['is_blocked']) ? (int)$row['is_blocked'] : 0;
 
                 if ($accountStatus !== 'active') {
-                    if ($accountStatus === 'pending_setup') {
-                        $error = "Your account is not ready yet. Please complete account setup first.";
-                    } else {
-                        $error = "Your account has been deactivated by admin.";
-                    }
+                    $error = ($accountStatus === 'pending_setup')
+                        ? "Your account is not ready yet. Please complete account setup first."
+                        : "Your account has been deactivated by admin.";
                 } elseif ($isBlocked === 1) {
                     $error = "Your account is blocked. Please contact admin.";
                 } else {
-                    $stored_password = $row['password'];
-                    $sha_input = hash('sha256', $password_input);
+                    $storedPassword = $row['password'];
+                    $loginOk = false;
 
-                   $storedPassword = $row['password'];
-$loginOk = false;
+                    if (password_verify($password_input, $storedPassword)) {
+                        $loginOk = true;
+                    } elseif (hash('sha256', $password_input) === $storedPassword) {
+                        $loginOk = true;
+                    } elseif ($storedPassword === $password_input) {
+                        $loginOk = true;
+                    }
 
-if (password_verify($password_input, $storedPassword)) {
-    $loginOk = true;
-} elseif (hash('sha256', $password_input) === $storedPassword) {
-    $loginOk = true;
-} elseif ($storedPassword === $password_input) {
-    $loginOk = true;
-}
-
-if ($loginOk) {
-
-                        $reset_sql = "UPDATE users SET failed_attempts = 0 WHERE id = ?";
-                        $reset_stmt = mysqli_prepare($conn, $reset_sql);
-                        if ($reset_stmt) {
-                            mysqli_stmt_bind_param($reset_stmt, "i", $row['id']);
-                            mysqli_stmt_execute($reset_stmt);
-                            mysqli_stmt_close($reset_stmt);
-                        }
-
-                        $last_login_sql = "UPDATE users SET last_login = NOW() WHERE id = ?";
-                        $last_login_stmt = mysqli_prepare($conn, $last_login_sql);
-                        if ($last_login_stmt) {
-                            mysqli_stmt_bind_param($last_login_stmt, "i", $row['id']);
-                            mysqli_stmt_execute($last_login_stmt);
-                            mysqli_stmt_close($last_login_stmt);
-                        }
+                    if ($loginOk) {
+                        mysqli_query($conn, "UPDATE users SET failed_attempts = 0, last_login = NOW() WHERE id = " . (int)$row['id']);
 
                         $userId = (int)$row['id'];
                         $today = date("Y-m-d");
 
                         $checkLoginDay = mysqli_query($conn, "
-                            SELECT id 
-                            FROM login_days 
-                            WHERE user_id = $userId 
+                            SELECT id FROM login_days
+                            WHERE user_id = $userId
                             AND login_date = '$today'
                             ORDER BY id DESC
                             LIMIT 1
@@ -121,51 +108,19 @@ if ($loginOk) {
                         $_SESSION['username'] = $row['username'];
                         $_SESSION['role'] = $row['role'];
 
-                        if ($row['role'] === 'admin') {
-                            header("Location: dashboardadmin.php");
-                            exit();
-                        } elseif ($row['role'] === 'hr') {
-                            header("Location: hrdashboard.php");
-                            exit();
-                        } elseif ($row['role'] === 'employee') {
-                            header("Location: dashboardemployee.php");
-                            exit();
-                        } elseif ($row['role'] === 'teamleader') {
-                            header("Location: dashboardteamleader.php");
-                            exit();
-                        } elseif ($row['role'] === 'itsupport') {
-                            header("Location: itsupport_dashboard.php");
-                            exit();
-                        } else {
-                            $error = "Invalid user role.";
-                        }
+                        redirectByRole($row['role']);
+                        $error = "Invalid user role.";
                     } else {
                         $protectedRoles = ['hr', 'employee', 'teamleader', 'itsupport'];
                         $current_attempts = isset($row['failed_attempts']) ? (int)$row['failed_attempts'] : 0;
                         $new_attempts = $current_attempts + 1;
 
-                        if (in_array($row['role'], $protectedRoles)) {
+                        if (in_array($row['role'], $protectedRoles, true)) {
                             if ($new_attempts >= 3) {
-                                $update_sql = "UPDATE users SET failed_attempts = ?, is_blocked = 1 WHERE id = ?";
-                                $update_stmt = mysqli_prepare($conn, $update_sql);
-
-                                if ($update_stmt) {
-                                    mysqli_stmt_bind_param($update_stmt, "ii", $new_attempts, $row['id']);
-                                    mysqli_stmt_execute($update_stmt);
-                                    mysqli_stmt_close($update_stmt);
-                                }
-
+                                mysqli_query($conn, "UPDATE users SET failed_attempts = $new_attempts, is_blocked = 1 WHERE id = " . (int)$row['id']);
                                 $error = "Your account has been blocked after 3 failed attempts.";
                             } else {
-                                $update_sql = "UPDATE users SET failed_attempts = ? WHERE id = ?";
-                                $update_stmt = mysqli_prepare($conn, $update_sql);
-
-                                if ($update_stmt) {
-                                    mysqli_stmt_bind_param($update_stmt, "ii", $new_attempts, $row['id']);
-                                    mysqli_stmt_execute($update_stmt);
-                                    mysqli_stmt_close($update_stmt);
-                                }
-
+                                mysqli_query($conn, "UPDATE users SET failed_attempts = $new_attempts WHERE id = " . (int)$row['id']);
                                 $remaining = 3 - $new_attempts;
                                 $error = "Invalid password. You have $remaining attempt(s) left before block.";
                             }
