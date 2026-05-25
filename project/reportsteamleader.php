@@ -216,6 +216,7 @@ $initial = strtoupper(substr($full_name, 0, 1));
       <li><a href="myteam.php"><i class="fas fa-users"></i> My Team</a></li>
       <li><a href="assigntasks.php"><i class="fas fa-list-check"></i> Assign Tasks</a></li>
       <li><a href="tasksprogress.php"><i class="fas fa-chart-line"></i> Tasks Progress</a></li>
+      <li><a href="meetings.php"><i class="fas fa-calendar-days"></i> Meetings</a></li>
       <li class="active"><a href="reportsteamleader.php"><i class="fas fa-file-lines"></i> Reports</a></li>
       <li><a href="notificationsteamleader.php"><i class="fas fa-bell"></i> Notifications</a></li>
       <li><a href="report_issue.php"><i class="fas fa-headset"></i> Report Issue</a></li>
