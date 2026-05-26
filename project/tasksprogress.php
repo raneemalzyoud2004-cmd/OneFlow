@@ -487,6 +487,7 @@ function formatStatusLabel($status)
       <li><a href="myteam.php"><i class="fas fa-users"></i> My Team</a></li>
       <li><a href="assigntasks.php"><i class="fas fa-list-check"></i> Assign Tasks</a></li>
       <li class="active"><a href="tasksprogress.php"><i class="fas fa-chart-line"></i> Tasks Progress</a></li>
+      <li><a href="meetings.php"><i class="fas fa-calendar-days"></i> Meetings</a></li>
       <li><a href="reportsteamleader.php"><i class="fas fa-file-lines"></i> Reports</a></li>
       <li><a href="notificationsteamleader.php"><i class="fas fa-bell"></i> Notifications</a></li>
       <li><a href="report_issue.php"><i class="fas fa-headset"></i> Report Issue</a></li>
@@ -516,12 +517,7 @@ function formatStatusLabel($status)
           <input type="text" placeholder="Search task status, member, deadline..." disabled>
         </div>
 
-        <a href="notificationsteamleader.php" class="icon-btn notification-bell">
-          <i class="fas fa-bell"></i>
-          <?php if ($notificationCount > 0) { ?>
-            <span class="notif-count"><?php echo $notificationCount; ?></span>
-          <?php } ?>
-        </a>
+     
 
         <div class="admin-profile">
           <div class="admin-avatar">

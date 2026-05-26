@@ -222,6 +222,7 @@ $totalMembers = $teamResult ? mysqli_num_rows($teamResult) : 0;
         <li class="active"><a href="myteam.php"><i class="fas fa-users"></i> My Team</a></li>
         <li><a href="assigntasks.php"><i class="fas fa-list-check"></i> Assign Tasks</a></li>
         <li><a href="tasksprogress.php"><i class="fas fa-chart-line"></i> Tasks Progress</a></li>
+        <li><a href="meetings.php"><i class="fas fa-calendar-days"></i> Meetings</a></li>
         <li><a href="reportsteamleader.php"><i class="fas fa-file-lines"></i> Reports</a></li>
         <li><a href="notificationsteamleader.php"><i class="fas fa-bell"></i> Notifications</a></li>
         <li><a href="report_issue.php"><i class="fas fa-headset"></i> Report Issue</a></li>
@@ -274,11 +275,7 @@ $totalMembers = $teamResult ? mysqli_num_rows($teamResult) : 0;
             </datalist>
         </div>
 
-        <div class="icon-btn notification-bell">
-            <i class="fas fa-bell"></i>
-            <span class="notif-count">4</span>
-        </div>
-
+ 
         <div class="admin-profile">
             <div class="admin-avatar">
                 <?php echo strtoupper(substr($full_name, 0, 1)); ?>
@@ -360,13 +357,35 @@ $totalMembers = $teamResult ? mysqli_num_rows($teamResult) : 0;
             </div>
 
             <div class="member-actions">
+
                 <a href="employeeprofile_tl.php?id=<?php echo $member['id']; ?>" class="member-btn view-btn">
                     <i class="fas fa-eye"></i> View Profile
                 </a>
 
-                <a href="assigntasks.php?employee_id=<?php echo $member['id']; ?>" class="member-btn task-btn">
-                    <i class="fas fa-list-check"></i> Assign Task
-                </a>
+                <?php if ($member['account_status'] === 'active') { ?>
+
+                    <a href="assigntasks.php?employee_id=<?php echo $member['id']; ?>" class="member-btn task-btn">
+                        <i class="fas fa-list-check"></i> Assign Task
+                    </a>
+
+                <?php } else { ?>
+
+                    <button 
+                        class="member-btn task-btn" 
+                        disabled
+                        style="
+                            background:#fee2e2;
+                            color:#991b1b;
+                            cursor:not-allowed;
+                            opacity:0.85;
+                            border:none;
+                        "
+                    >
+                        <i class="fas fa-ban"></i> Cannot Assign
+                    </button>
+
+                <?php } ?>
+
             </div>
         </div>
 

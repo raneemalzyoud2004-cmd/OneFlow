@@ -14,6 +14,7 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] != 'employee') {
 $user_id = (int)$_SESSION['user_id'];
 $full_name = $_SESSION['full_name'];
 $errorMessage = "";
+$successMessage = "";
 
 mysqli_query($conn, "
     CREATE TABLE IF NOT EXISTS schedule (
@@ -27,6 +28,57 @@ mysqli_query($conn, "
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
 ");
+
+if (isset($_GET['accept_meeting'])) {
+    $meeting_id = (int) $_GET['accept_meeting'];
+
+    $meetingQuery = mysqli_query($conn, "
+        SELECT m.*
+        FROM meetings m
+        JOIN meeting_members mm ON m.id = mm.meeting_id
+        WHERE mm.employee_id = '$user_id'
+        AND mm.meeting_id = '$meeting_id'
+        AND mm.response_status = 'Pending'
+        LIMIT 1
+    ");
+
+    if ($meetingQuery && mysqli_num_rows($meetingQuery) > 0) {
+        $meeting = mysqli_fetch_assoc($meetingQuery);
+
+        mysqli_query($conn, "
+            UPDATE meeting_members
+            SET response_status='Accepted',
+                responded_at = NOW()
+            WHERE meeting_id='$meeting_id'
+            AND employee_id='$user_id'
+        ");
+
+        $meetingStart = $meeting['meeting_date'] . ' ' . $meeting['start_time'];
+        $meetingEnd = $meeting['meeting_date'] . ' ' . $meeting['end_time'];
+        $safeTitle = mysqli_real_escape_string($conn, $meeting['title']);
+
+        mysqli_query($conn, "
+            INSERT INTO schedule (user_id, title, type, start_time, end_time, status)
+            VALUES ('$user_id', '$safeTitle', 'Meeting', '$meetingStart', '$meetingEnd', 'Pending')
+        ");
+
+        $successMessage = "Meeting accepted successfully and added to your schedule.";
+    }
+}
+
+if (isset($_GET['reject_meeting'])) {
+    $meeting_id = (int) $_GET['reject_meeting'];
+
+    mysqli_query($conn, "
+        UPDATE meeting_members
+        SET response_status='Rejected',
+            responded_at = NOW()
+        WHERE meeting_id='$meeting_id'
+        AND employee_id='$user_id'
+    ");
+
+    $successMessage = "Meeting rejected successfully.";
+}
 
 $today = date("Y-m-d");
 $weekStart = date("Y-m-d 00:00:00", strtotime("monday this week"));
@@ -127,6 +179,7 @@ $result = mysqli_query($conn, "
     AND start_time BETWEEN '$weekStart' AND '$weekEnd'
 ");
 if ($result) $workSessions = mysqli_fetch_assoc($result)['total'];
+
 $result = mysqli_query($conn, "
     SELECT COUNT(*) AS total
     FROM schedule
@@ -160,6 +213,15 @@ if ($result && mysqli_num_rows($result) > 0) {
     $nextMeetingRow = mysqli_fetch_assoc($result);
     $nextMeeting = date("h:i A", strtotime($nextMeetingRow['start_time']));
 }
+
+$meetingInvitationsQuery = mysqli_query($conn, "
+    SELECT m.*, mm.response_status
+    FROM meetings m
+    JOIN meeting_members mm ON m.id = mm.meeting_id
+    WHERE mm.employee_id = '$user_id'
+    AND mm.response_status = 'Pending'
+    ORDER BY m.meeting_date ASC, m.start_time ASC
+");
 
 $scheduleQuery = mysqli_query($conn, "
     SELECT *
@@ -196,6 +258,15 @@ $todayScheduleQuery = mysqli_query($conn, "
     font-weight: 800;
     background: #fee2e2;
     color: #991b1b;
+}
+
+.schedule-success {
+    padding: 14px 18px;
+    border-radius: 16px;
+    margin-bottom: 18px;
+    font-weight: 800;
+    background: #dcfce7;
+    color: #166534;
 }
 
 .schedule-hero {
@@ -414,6 +485,51 @@ $todayScheduleQuery = mysqli_query($conn, "
     color: white;
 }
 
+.meeting-invite-card {
+    background: #f8fafc;
+    border: 1px solid #dbe7f0;
+    border-radius: 20px;
+    padding: 20px;
+}
+
+.meeting-invite-card h3 {
+    color: #0D1E4C;
+    margin-bottom: 10px;
+}
+
+.meeting-invite-card p {
+    color: #64748b;
+    margin-bottom: 14px;
+    line-height: 1.6;
+}
+
+.meeting-info-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 18px;
+    color: #0f172a;
+    font-weight: 700;
+}
+
+.accept-meeting-btn {
+    padding: 12px 18px;
+    border-radius: 12px;
+    background: #14b8a6;
+    color: white;
+    text-decoration: none;
+    font-weight: 800;
+}
+
+.reject-meeting-btn {
+    padding: 12px 18px;
+    border-radius: 12px;
+    background: #ef4444;
+    color: white;
+    text-decoration: none;
+    font-weight: 800;
+}
+
 @media(max-width: 1100px) {
     .schedule-grid {
         grid-template-columns: 1fr;
@@ -482,11 +598,7 @@ $todayScheduleQuery = mysqli_query($conn, "
             <input type="text" id="scheduleSearch" placeholder="Search schedule...">
         </div>
 
-        <div class="icon-btn notification-bell">
-            <i class="fas fa-bell"></i>
-            <span class="notif-count"><?php echo $upcomingToday; ?></span>
-        </div>
-
+       
         <div class="admin-profile">
             <div class="admin-avatar">
                 <?php echo strtoupper(substr($full_name, 0, 1)); ?>
@@ -500,6 +612,10 @@ $todayScheduleQuery = mysqli_query($conn, "
         <a href="logout.php" class="logout-btn">Logout</a>
     </div>
 </header>
+
+<?php if (!empty($successMessage)) { ?>
+    <div class="schedule-success"><?php echo htmlspecialchars($successMessage); ?></div>
+<?php } ?>
 
 <?php if (!empty($errorMessage)) { ?>
     <div class="schedule-message"><?php echo htmlspecialchars($errorMessage); ?></div>
@@ -530,8 +646,6 @@ $todayScheduleQuery = mysqli_query($conn, "
         </div>
     </div>
 
-   
-
     <div class="card searchable-item">
         <div class="card-icon"><i class="fas fa-clock"></i></div>
         <div class="card-info">
@@ -551,6 +665,66 @@ $todayScheduleQuery = mysqli_query($conn, "
     </div>
 </section>
 
+<section class="panel searchable-item" style="margin-bottom:25px;">
+
+    <div class="panel-header">
+        <h2>Meeting Invitations</h2>
+    </div>
+
+    <?php if ($meetingInvitationsQuery && mysqli_num_rows($meetingInvitationsQuery) > 0) { ?>
+
+        <div style="display:grid; gap:18px;">
+
+            <?php while ($meetingInvite = mysqli_fetch_assoc($meetingInvitationsQuery)) { ?>
+
+                <div class="meeting-invite-card">
+
+                    <h3><?php echo htmlspecialchars($meetingInvite['title']); ?></h3>
+
+                    <p>
+                        <?php echo !empty($meetingInvite['description']) ? htmlspecialchars($meetingInvite['description']) : 'No description provided.'; ?>
+                    </p>
+
+                    <div class="meeting-info-row">
+                        <span>
+                            <i class="fas fa-calendar"></i>
+                            <?php echo htmlspecialchars($meetingInvite['meeting_date']); ?>
+                        </span>
+
+                        <span>
+                            <i class="fas fa-clock"></i>
+                            <?php echo date("h:i A", strtotime($meetingInvite['start_time'])); ?>
+                            -
+                            <?php echo date("h:i A", strtotime($meetingInvite['end_time'])); ?>
+                        </span>
+                    </div>
+
+                    <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                        <a href="myschedule.php?accept_meeting=<?php echo $meetingInvite['id']; ?>" class="accept-meeting-btn">
+                            <i class="fas fa-check"></i> Accept
+                        </a>
+
+                        <a href="myschedule.php?reject_meeting=<?php echo $meetingInvite['id']; ?>" class="reject-meeting-btn">
+                            <i class="fas fa-xmark"></i> Reject
+                        </a>
+                    </div>
+
+                </div>
+
+            <?php } ?>
+
+        </div>
+
+    <?php } else { ?>
+
+        <div class="schedule-empty">
+            No pending meeting invitations.
+        </div>
+
+    <?php } ?>
+
+</section>
+
 <section class="schedule-grid">
 
     <div class="schedule-column">
@@ -568,8 +742,8 @@ $todayScheduleQuery = mysqli_query($conn, "
                 <button class="filter-chip active" onclick="filterSchedule('all', this)">All</button>
                 <button class="filter-chip" onclick="filterSchedule('Meeting', this)">Meetings</button>
                 <button class="filter-chip" onclick="filterSchedule('Work', this)">Work</button>
-             <button class="filter-chip" onclick="filterSchedule('Sessions', this)">Sessions</button>
-<button class="filter-chip" onclick="filterSchedule('Session', this)" style="display:none;">Session</button>
+                <button class="filter-chip" onclick="filterSchedule('Sessions', this)">Sessions</button>
+                <button class="filter-chip" onclick="filterSchedule('Session', this)" style="display:none;">Session</button>
                 <button class="filter-chip" onclick="filterSchedule('Training', this)">Training</button>
                 <button class="filter-chip" onclick="filterSchedule('Break', this)">Break</button>
             </div>
@@ -608,10 +782,11 @@ $todayScheduleQuery = mysqli_query($conn, "
                                 $statusClass = "pending";
                             }
 
-                          $typeClass = "type-" . strtolower(trim($row['type']));
-if ($typeClass === "type-session") {
-    $typeClass = "type-sessions";
-}
+                            $typeClass = "type-" . strtolower(trim($row['type']));
+                            if ($typeClass === "type-session") {
+                                $typeClass = "type-sessions";
+                            }
+
                             $editTitle = htmlspecialchars($row['title'], ENT_QUOTES);
                             $editType = htmlspecialchars($row['type'], ENT_QUOTES);
                             $editStart = date('Y-m-d\TH:i', strtotime($row['start_time']));

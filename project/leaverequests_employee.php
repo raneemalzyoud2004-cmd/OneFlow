@@ -121,10 +121,7 @@ $result = $myRequests->get_result();
           <input type="text" placeholder="Search your requests...">
         </div>
 
-        <div class="icon-btn notification-bell">
-          <i class="fas fa-bell"></i>
-          <span class="notif-count">2</span>
-        </div>
+        
 
    <a href="logout.php" class="logout-btn">
     <i class="fas fa-right-from-bracket"></i> Logout
