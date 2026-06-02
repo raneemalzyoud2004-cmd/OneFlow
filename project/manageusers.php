@@ -15,6 +15,16 @@ $full_name = $_SESSION['full_name'];
 $popupMessage = "";
 $popupType = "";
 
+if (isset($_GET['role_updated'])) {
+    if ($_GET['role_updated'] == "1") {
+        $popupMessage = "User role updated successfully.";
+        $popupType = "success";
+    } else {
+        $popupMessage = "Failed to update user role.";
+        $popupType = "error";
+    }
+}
+
 if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['update_role'])) {
     $userId = (int) $_POST['user_id'];
     $newRole = trim($_POST['new_role']);
@@ -25,19 +35,18 @@ if ($_SERVER["REQUEST_METHOD"] === "POST" && isset($_POST['update_role'])) {
         $stmt = mysqli_prepare($conn, "UPDATE users SET role = ? WHERE id = ?");
         if ($stmt) {
             mysqli_stmt_bind_param($stmt, "si", $newRole, $userId);
-            if (mysqli_stmt_execute($stmt)) {
-                $popupMessage = "User role updated successfully.";
-                $popupType = "success";
-            } else {
-                $popupMessage = "Failed to update user role.";
-                $popupType = "error";
-            }
+            $success = mysqli_stmt_execute($stmt);
             mysqli_stmt_close($stmt);
+
+            if ($success) {
+                header("Location: manageusers.php?role_updated=1");
+                exit();
+            }
         }
-    } else {
-        $popupMessage = "Invalid role selected.";
-        $popupType = "error";
     }
+
+    header("Location: manageusers.php?role_updated=0");
+    exit();
 }
 
 if (isset($_GET['toggle_status'])) {
