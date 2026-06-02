@@ -158,6 +158,12 @@ $tasksQuery = mysqli_query($conn, "
     WHERE tt.assigned_to = $employee_id
     ORDER BY
       CASE
+        WHEN tt.priority = 'high' THEN 1
+        WHEN tt.priority = 'medium' THEN 2
+        WHEN tt.priority = 'low' THEN 3
+        ELSE 4
+      END,
+      CASE
         WHEN tt.status = 'submitted' THEN 1
         WHEN tt.status = 'in_progress' THEN 2
         WHEN tt.status = 'revision_required' THEN 3
