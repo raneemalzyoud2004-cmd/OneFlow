@@ -32,7 +32,7 @@ if ($notificationCountResult) {
     $notificationCount = (int) mysqli_fetch_assoc($notificationCountResult)['total'];
 }
 
-$upload_dir = __DIR__ . '/uploads/';
+$upload_dir = _DIR_ . '/uploads/';
 $upload_url = 'uploads/';
 
 if (!is_dir($upload_dir)) {
@@ -157,6 +157,12 @@ $tasksQuery = mysqli_query($conn, "
     JOIN users u ON tt.assigned_by = u.id
     WHERE tt.assigned_to = $employee_id
     ORDER BY
+      CASE
+        WHEN tt.priority = 'high' THEN 1
+        WHEN tt.priority = 'medium' THEN 2
+        WHEN tt.priority = 'low' THEN 3
+        ELSE 4
+      END,
       CASE
         WHEN tt.status = 'submitted' THEN 1
         WHEN tt.status = 'in_progress' THEN 2
