@@ -32,7 +32,7 @@ if ($notificationCountResult) {
     $notificationCount = (int) mysqli_fetch_assoc($notificationCountResult)['total'];
 }
 
-$upload_dir = __DIR__ . '/uploads/';
+$upload_dir = _DIR_ . '/uploads/';
 $upload_url = 'uploads/';
 
 if (!is_dir($upload_dir)) {
