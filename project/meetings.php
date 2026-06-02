@@ -474,12 +474,7 @@ function responseStatusClass($status) {
     </div>
 
     <div class="topbar-right">
-        <a href="notificationsteamleader.php" class="icon-btn notification-bell">
-            <i class="fas fa-bell"></i>
-            <?php if ($notificationCount > 0) { ?>
-                <span class="notif-count"><?php echo $notificationCount; ?></span>
-            <?php } ?>
-        </a>
+    
 
         <div class="admin-profile">
             <div class="admin-avatar"><?php echo htmlspecialchars($first_letter); ?></div>

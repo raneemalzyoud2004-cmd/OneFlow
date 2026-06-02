@@ -44,11 +44,11 @@ if (isset($_SESSION['user_id']) && isset($_SESSION['role'])) {
 }
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $username = trim($_POST['username']);
-    $password_input = trim($_POST['password']);
+    $username = isset($_POST['username']) ? trim($_POST['username']) : "";
+    $password_input = isset($_POST['password']) ? trim($_POST['password']) : "";
 
     if (!empty($username) && !empty($password_input)) {
-        $sql = "SELECT * FROM users WHERE username = ?";
+        $sql = "SELECT * FROM users WHERE username = ? LIMIT 1";
         $stmt = mysqli_prepare($conn, $sql);
 
         if ($stmt) {
@@ -61,9 +61,11 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 $isBlocked = isset($row['is_blocked']) ? (int)$row['is_blocked'] : 0;
 
                 if ($accountStatus !== 'active') {
-                    $error = ($accountStatus === 'pending_setup')
-                        ? "Your account is not ready yet. Please complete account setup first."
-                        : "Your account has been deactivated by admin.";
+                    if ($accountStatus === 'pending_setup') {
+                        $error = "Your account is not ready yet. Please complete account setup first.";
+                    } else {
+                        $error = "Your account has been deactivated by admin.";
+                    }
                 } elseif ($isBlocked === 1) {
                     $error = "Your account is blocked. Please contact admin.";
                 } else {
@@ -79,13 +81,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                     }
 
                     if ($loginOk) {
-                        mysqli_query($conn, "UPDATE users SET failed_attempts = 0, last_login = NOW() WHERE id = " . (int)$row['id']);
-
                         $userId = (int)$row['id'];
+
+                        mysqli_query($conn, "
+                            UPDATE users
+                            SET failed_attempts = 0,
+                                last_login = NOW()
+                            WHERE id = $userId
+                        ");
+
                         $today = date("Y-m-d");
 
                         $checkLoginDay = mysqli_query($conn, "
-                            SELECT id FROM login_days
+                            SELECT id
+                            FROM login_days
                             WHERE user_id = $userId
                             AND login_date = '$today'
                             ORDER BY id DESC
@@ -100,6 +109,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                                 INSERT INTO login_days (user_id, login_date)
                                 VALUES ($userId, '$today')
                             ");
+
                             $_SESSION['login_day_id'] = mysqli_insert_id($conn);
                         }
 
@@ -109,19 +119,31 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                         $_SESSION['role'] = $row['role'];
 
                         redirectByRole($row['role']);
+
                         $error = "Invalid user role.";
                     } else {
                         $protectedRoles = ['hr', 'employee', 'teamleader', 'itsupport'];
-                        $current_attempts = isset($row['failed_attempts']) ? (int)$row['failed_attempts'] : 0;
-                        $new_attempts = $current_attempts + 1;
+                        $currentAttempts = isset($row['failed_attempts']) ? (int)$row['failed_attempts'] : 0;
+                        $newAttempts = $currentAttempts + 1;
 
                         if (in_array($row['role'], $protectedRoles, true)) {
-                            if ($new_attempts >= 3) {
-                                mysqli_query($conn, "UPDATE users SET failed_attempts = $new_attempts, is_blocked = 1 WHERE id = " . (int)$row['id']);
+                            if ($newAttempts >= 3) {
+                                mysqli_query($conn, "
+                                    UPDATE users
+                                    SET failed_attempts = $newAttempts,
+                                        is_blocked = 1
+                                    WHERE id = " . (int)$row['id']
+                                );
+
                                 $error = "Your account has been blocked after 3 failed attempts.";
                             } else {
-                                mysqli_query($conn, "UPDATE users SET failed_attempts = $new_attempts WHERE id = " . (int)$row['id']);
-                                $remaining = 3 - $new_attempts;
+                                mysqli_query($conn, "
+                                    UPDATE users
+                                    SET failed_attempts = $newAttempts
+                                    WHERE id = " . (int)$row['id']
+                                );
+
+                                $remaining = 3 - $newAttempts;
                                 $error = "Invalid password. You have $remaining attempt(s) left before block.";
                             }
                         } else {
@@ -179,7 +201,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
                 </p>
             <?php } ?>
 
-            <form method="POST" action="">
+            <form method="POST" action="login.php">
                 <div class="input-box">
                     <i class="fa-solid fa-user"></i>
                     <input type="text" name="username" placeholder="Username" required>

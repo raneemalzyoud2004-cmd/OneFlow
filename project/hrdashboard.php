@@ -789,8 +789,7 @@ $hrTodosResult = mysqli_query($conn, "SELECT * FROM hr_todos ORDER BY id DESC");
             </div>
         </div>
 
-        <a href="logout.php" class="logout-btn">Logout</a>
-    </div>
+<a href="logout.php" class="logout-btn">Logout</a>    </div>
 </header>
 
 <?php if (!empty($successMessage)) { ?>

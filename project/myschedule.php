@@ -598,11 +598,7 @@ $todayScheduleQuery = mysqli_query($conn, "
             <input type="text" id="scheduleSearch" placeholder="Search schedule...">
         </div>
 
-        <div class="icon-btn notification-bell">
-            <i class="fas fa-bell"></i>
-            <span class="notif-count"><?php echo $upcomingToday; ?></span>
-        </div>
-
+       
         <div class="admin-profile">
             <div class="admin-avatar">
                 <?php echo strtoupper(substr($full_name, 0, 1)); ?>

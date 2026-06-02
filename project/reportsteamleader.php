@@ -181,6 +181,26 @@ $initial = strtoupper(substr($full_name, 0, 1));
       line-height: 1.5;
     }
 
+
+    .search-hidden {
+      display: none !important;
+    }
+
+    .search-match {
+      box-shadow: 0 0 0 3px rgba(18, 194, 204, 0.14);
+      border-color: rgba(18, 194, 204, 0.35) !important;
+    }
+
+    .search-empty-row td,
+    .search-empty-box {
+      padding: 18px;
+      text-align: center;
+      color: #64748b;
+      font-weight: 700;
+      background: #f8fbfd;
+      border-radius: 14px;
+    }
+
     @media (max-width: 1200px) {
       .reports-stats {
         grid-template-columns: repeat(2, 1fr);
@@ -243,13 +263,10 @@ $initial = strtoupper(substr($full_name, 0, 1));
       <div class="topbar-right">
         <div class="search-box">
           <i class="fas fa-search"></i>
-          <input type="text" placeholder="Search report, task, member...">
+          <input type="text" id="reportSearch" onkeyup="searchReportsPage()" placeholder="Search reports, tasks, members, status...">
         </div>
 
-        <a href="notificationsteamleader.php" class="icon-btn notification-bell">
-          <i class="fas fa-bell"></i>
-          <span class="notif-count">4</span>
-        </a>
+     
 
         <div class="admin-profile">
           <div class="admin-avatar"><?php echo htmlspecialchars($initial); ?></div>
@@ -318,39 +335,42 @@ $initial = strtoupper(substr($full_name, 0, 1));
             </thead>
 
             <tbody>
-              <tr>
+              <tr class="report-search-row" data-search="leave request review noor in progress 15 may 2026">
                 <td>Leave Request Review</td>
                 <td>Noor</td>
                 <td><span class="status-label progress-label">In Progress</span></td>
                 <td>15 May 2026</td>
               </tr>
 
-              <tr>
+              <tr class="report-search-row" data-search="attendance records update ammar pending 17 may 2026">
                 <td>Attendance Records Update</td>
                 <td>Ammar</td>
                 <td><span class="status-label pending-label">Pending</span></td>
                 <td>17 May 2026</td>
               </tr>
 
-              <tr>
+              <tr class="report-search-row" data-search="employee profile testing sara completed 10 may 2026">
                 <td>Employee Profile Testing</td>
                 <td>Sara</td>
                 <td><span class="status-label done-label">Completed</span></td>
                 <td>10 May 2026</td>
               </tr>
 
-              <tr>
+              <tr class="report-search-row" data-search="tasks progress monitoring khaled in progress 20 may 2026">
                 <td>Tasks Progress Monitoring</td>
                 <td>Khaled</td>
                 <td><span class="status-label progress-label">In Progress</span></td>
                 <td>20 May 2026</td>
               </tr>
 
-              <tr>
+              <tr class="report-search-row" data-search="notifications page review dana pending 22 may 2026">
                 <td>Notifications Page Review</td>
                 <td>Dana</td>
                 <td><span class="status-label pending-label">Pending</span></td>
                 <td>22 May 2026</td>
+              </tr>
+              <tr id="reportNoResultsRow" class="search-empty-row" style="display:none;">
+                <td colspan="4">No report or task found.</td>
               </tr>
             </tbody>
           </table>
@@ -362,7 +382,7 @@ $initial = strtoupper(substr($full_name, 0, 1));
 
         <div class="member-performance-list">
 
-          <div class="member-performance-item">
+          <div class="member-performance-item member-search-item" data-search="noor excellent follow-up on leave requests and task updates employee performance score 91">
             <div class="member-top">
               <div>
                 <h4>Noor</h4>
@@ -375,7 +395,7 @@ $initial = strtoupper(substr($full_name, 0, 1));
             <div class="member-note">Excellent follow-up on leave requests and task updates.</div>
           </div>
 
-          <div class="member-performance-item">
+          <div class="member-performance-item member-search-item" data-search="ammar good attendance tracking and profile management performance employee performance score 84">
             <div class="member-top">
               <div>
                 <h4>Ammar</h4>
@@ -388,7 +408,7 @@ $initial = strtoupper(substr($full_name, 0, 1));
             <div class="member-note">Good attendance tracking and profile management performance.</div>
           </div>
 
-          <div class="member-performance-item">
+          <div class="member-performance-item member-search-item" data-search="sara fast completion of assigned system tasks employee performance score 96">
             <div class="member-top">
               <div>
                 <h4>Sara</h4>
@@ -401,7 +421,7 @@ $initial = strtoupper(substr($full_name, 0, 1));
             <div class="member-note">Fast completion of assigned system tasks.</div>
           </div>
 
-          <div class="member-performance-item">
+          <div class="member-performance-item member-search-item" data-search="khaled needs improvement in task completion deadlines employee performance score 78">
             <div class="member-top">
               <div>
                 <h4>Khaled</h4>
@@ -414,7 +434,7 @@ $initial = strtoupper(substr($full_name, 0, 1));
             <div class="member-note">Needs improvement in task completion deadlines.</div>
           </div>
 
-          <div class="member-performance-item">
+          <div class="member-performance-item member-search-item" data-search="dana inactive recently with pending assigned reviews employee performance score 69">
             <div class="member-top">
               <div>
                 <h4>Dana</h4>
@@ -427,6 +447,10 @@ $initial = strtoupper(substr($full_name, 0, 1));
             <div class="member-note">Inactive recently with pending assigned reviews.</div>
           </div>
 
+          <div id="memberNoResultsBox" class="search-empty-box" style="display:none;">
+            No team member found.
+          </div>
+
         </div>
       </div>
 
@@ -434,6 +458,56 @@ $initial = strtoupper(substr($full_name, 0, 1));
 
   </main>
 </div>
+
+
+<script>
+function searchReportsPage() {
+  const input = document.getElementById("reportSearch");
+  const value = input.value.toLowerCase().trim();
+
+  const reportRows = document.querySelectorAll(".report-search-row");
+  const memberItems = document.querySelectorAll(".member-search-item");
+  const reportNoResultsRow = document.getElementById("reportNoResultsRow");
+  const memberNoResultsBox = document.getElementById("memberNoResultsBox");
+
+  let visibleReports = 0;
+  let visibleMembers = 0;
+
+  reportRows.forEach(function(row) {
+    const text = (row.getAttribute("data-search") || row.innerText || "").toLowerCase();
+
+    if (value === "" || text.includes(value)) {
+      row.classList.remove("search-hidden");
+      row.classList.toggle("search-match", value !== "");
+      visibleReports++;
+    } else {
+      row.classList.add("search-hidden");
+      row.classList.remove("search-match");
+    }
+  });
+
+  memberItems.forEach(function(item) {
+    const text = (item.getAttribute("data-search") || item.innerText || "").toLowerCase();
+
+    if (value === "" || text.includes(value)) {
+      item.classList.remove("search-hidden");
+      item.classList.toggle("search-match", value !== "");
+      visibleMembers++;
+    } else {
+      item.classList.add("search-hidden");
+      item.classList.remove("search-match");
+    }
+  });
+
+  if (reportNoResultsRow) {
+    reportNoResultsRow.style.display = visibleReports === 0 ? "" : "none";
+  }
+
+  if (memberNoResultsBox) {
+    memberNoResultsBox.style.display = visibleMembers === 0 ? "block" : "none";
+  }
+}
+</script>
 
 </body>
 </html>

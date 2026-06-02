@@ -456,10 +456,7 @@ $canEndWork = $activeWork;
     </div>
 
     <div class="topbar-right">
-        <div class="icon-btn notification-bell">
-            <i class="fas fa-bell"></i>
-            <span class="notif-count">1</span>
-        </div>
+        
 
         <div class="admin-profile">
             <div class="admin-avatar">
